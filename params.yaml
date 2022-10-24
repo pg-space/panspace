@@ -6,7 +6,7 @@ fcgr:
   dir_tarfiles: 'data/'
 
 train:
-  latent_dim: 10
+  latent_dim: 100
   epochs: 20  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
