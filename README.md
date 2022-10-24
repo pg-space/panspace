@@ -26,6 +26,28 @@ Once FCGR (npy file) has been generated, we can train a VAR (see `params.yaml`)
 python src/train.py
 ```
 
+After training the model, you should see this folder structure
+(assuming `data/` contains the tar.xz files, and in also used to save the FCGR and training results)
+
+```
+.
+├── data
+│   ├── actinobacillus_pleuropneumoniae__01.tar.xz
+│   ├── aeromonas_salmonicida__01.tar.xz
+│   ├── bacillus_anthracis__01.tar.xz
+│   ├── fcgr-6mer
+│   └── train
+├── env
+├── params.yaml
+├── README.md
+├── requirements.txt
+└── src
+    ├── dnn
+    ├── fcgr
+    ├── fcgr.py
+    └── train.py
+```
+
 ## Extras
 ___
 ### `fcgr CLI`

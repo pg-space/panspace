@@ -54,11 +54,7 @@ list_val   = tvt_split.datasets["id_labels"]["val"]
 
 # save split
 with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:
-    json.dump(tvt_split.datasets["id_labels"], fp, indent=4)
-
-# save split with labels
-with open(PATH_TRAIN.joinpath("labels-train-val-test.json"),"w") as fp:
-    json.dump(tvt_split.datasets["labels"], fp, indent=4)
+    json.dump(tvt_split.datasets, fp, indent=4)
 
 # dataset train
 ds_train = DataLoader(
