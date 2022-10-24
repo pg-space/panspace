@@ -24,15 +24,16 @@ parser.add_argument("--path-fcgr", dest="path_fcgr", type=str, default=None, req
                     )
 
 parser.add_argument("--path-tarfile", dest="path_tarfile", type=str, default=None, required=False,
-                    help="path to tarfile, it should contain one or several fasta files"
+                    help="path to tarfile with one or several fasta files"
                     )
 
 parser.add_argument("--dir-tarfiles", dest="dir_tarfiles", type=str, default=None, required=False,
-                    help="path to tarfile, it should contain one or several fasta files"
+                    help="""path to directory with tarfiles, each tarfile should contain one or several fasta files. 
+                    Used only if --dir-tarfiles is not provided"""
                     )
 
 parser.add_argument("-w", "--workers", dest="workers", type=int, default=1, required=False,
-                    help="number of workers to use with ThreadPoolExecutor in case --dir-tarfile is provided"
+                    help="""number of workers to use with ThreadPoolExecutor in case --dir-tarfile is provided."""
 )
 
 args = parser.parse_args()
