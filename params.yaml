@@ -7,7 +7,7 @@ fcgr:
 
 train:
   latent_dim: 10
-  epochs: 1  
+  epochs: 20  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
   patiente_early_stopping: 20
