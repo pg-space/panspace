@@ -1,0 +1,17 @@
+k: 6
+
+fcgr:
+  path_tarfile: null
+  path_fcgr: 'data/fcgr-6mer'
+  dir_tarfiles: 'data/'
+
+train:
+  latent_dim: 100
+  epochs: 20  
+  batch_size: 16
+  architecture: 'CNNAutoencoderCAEBN'
+  patiente_early_stopping: 20
+  patiente_learning_rate: 15
+  train_size: 0.8
+
+seed: 42
