@@ -26,6 +26,12 @@ Once FCGR (npy file) has been generated, we can train a VAR (see `params.yaml`)
 python src/train.py
 ```
 
+## 3. build and test the index
+Build the index, query the most similar embeddings
+```bash 
+python src/index.py
+```
+
 After training the model, you should see this folder structure
 (assuming `data/` contains the tar.xz files, and in also used to save the FCGR and training results)
 
