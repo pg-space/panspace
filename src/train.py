@@ -51,6 +51,8 @@ tvt_split = TrainValTestSplit(id_labels=list_npy, labels=labels, seed=SEED)
 tvt_split(train_size=TRAIN_SIZE, balanced_on=labels)# split datasets
 list_train = tvt_split.datasets["id_labels"]["train"]
 list_val   = tvt_split.datasets["id_labels"]["val"]
+list_test   = tvt_split.datasets["id_labels"]["test"]
+
 
 # save split
 with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:
@@ -132,3 +134,59 @@ autoencoder.fit(
         cb_csvtime
         ]
 )
+
+# Encoder-Decoder
+encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_encoder").output)
+decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
+
+# save encoder and decoder
+path_save_models = Path("data/models")
+encoder.save(path_save_models.joinpath("encoder"))
+decoder.save(path_save_models.joinpath("decoder"))
+
+# compute embeddings
+trainval_data = DataLoader(
+    list_paths=list_train + list_val,
+    batch_size=10,
+    shuffle=False,
+    preprocessing=preprocessing,
+    inference_mode=True
+)
+
+# embeddings train+val
+embeddings = []
+for data in iter(trainval_data):
+    encoded_imgs = encoder(data).numpy()
+    embeddings.append(encoded_imgs)
+
+all_emb = np.concatenate(embeddings, axis=0)
+assert len(all_emb) == len(list_train+list_val), "embeddings and ids does not match"
+# save embeddings
+path_emb = Path("data/faiss-embeddings")
+path_emb.mkdir(exist_ok=True, parents=True)
+np.save(file=path_emb.joinpath("embeddings.npy"), arr=all_emb)
+with open(path_emb.joinpath("id_embeddings.json"), "w") as fp:
+    json.dump({j: str(p) for j,p in enumerate(list_train+list_val)}, fp, indent=4)
+
+# embeddings test set
+test_data = DataLoader(
+    list_paths=list_test,
+    batch_size=10,
+    shuffle=False,
+    preprocessing=preprocessing,
+    inference_mode=True
+)
+
+embeddings = []
+for data in iter(test_data):
+    encoded_imgs = encoder(data).numpy()
+    embeddings.append(encoded_imgs)
+
+all_emb = np.concatenate(embeddings, axis=0)
+assert len(all_emb) == len(list_test), "embeddings and ids does not match"
+# save embeddings
+path_emb = Path("data/faiss-embeddings")
+path_emb.mkdir(exist_ok=True, parents=True)
+np.save(file=path_emb.joinpath("query_embeddings.npy"), arr=all_emb)
+with open(path_emb.joinpath("query_embeddings.json"), "w") as fp:
+    json.dump({j: str(p) for j,p in enumerate(list_test)}, fp, indent=4)

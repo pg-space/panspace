@@ -6,8 +6,8 @@ fcgr:
   dir_tarfiles: 'data/'
 
 train:
-  latent_dim: 100
-  epochs: 20  
+  latent_dim: 10
+  epochs: 1  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
   patiente_early_stopping: 20
