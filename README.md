@@ -41,7 +41,10 @@ After training the model, you should see this folder structure
 │   ├── actinobacillus_pleuropneumoniae__01.tar.xz
 │   ├── aeromonas_salmonicida__01.tar.xz
 │   ├── bacillus_anthracis__01.tar.xz
+│   ├── faiss-embeddings
 │   ├── fcgr-6mer
+│   ├── models
+│   ├── test
 │   └── train
 ├── env
 ├── params.yaml
@@ -51,6 +54,7 @@ After training the model, you should see this folder structure
     ├── dnn
     ├── fcgr
     ├── fcgr.py
+    ├── index.py__
     └── train.py
 ```
 
