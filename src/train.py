@@ -17,6 +17,10 @@ from dnn.models import (
 from dnn.callbacks import CSVTimeHistory
 from dnn.utils.split_data import TrainValTestSplit
 
+# from mlflow import log_metric, log_param, log_artifacts, set_experiment
+
+import mlflow
+import mlflow.keras
 ## Params
 with open("params.yaml") as fp:
     params = yaml.load(fp, Loader=yaml.FullLoader)
@@ -30,6 +34,13 @@ PATIENTE_EARLY_STOPPING=params['train']['patiente_early_stopping']
 PATIENTE_LEARNING_RATE=params['train']['patiente_learning_rate']
 TRAIN_SIZE=params['train']['train_size']
 SEED=params['seed']
+
+# mlflow 
+mlflow.set_experiment(f"{LATENT_DIM}-{ARCHITECTURE}")
+mlflow.log_param("latent_dim", LATENT_DIM)
+mlflow.log_param("batch_size", BATCH_SIZE)
+mlflow.log_param("architecture",ARCHITECTURE)
+mlflow.log_param("train_size", TRAIN_SIZE)
 
 # folder where to save training results
 PATH_TRAIN = Path("data/train/")
@@ -119,6 +130,9 @@ cb_csvtime = CSVTimeHistory(
     append=False
 )
 
+# autolog your metrics, parameters, and model
+# mlflow.keras.autolog()
+
 # Load and train model
 autoencoder=eval(f"{ARCHITECTURE}(LATENT_DIM)")
 autoencoder.compile(optimizer='adam', loss="binary_crossentropy")
@@ -143,6 +157,8 @@ decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, au
 path_save_models = Path("data/models")
 encoder.save(path_save_models.joinpath("encoder"))
 decoder.save(path_save_models.joinpath("decoder"))
+# log_artifacts(path_save_models.joinpath("encoder"))
+# log_artifacts(path_save_models.joinpath("decoder"))
 
 # compute embeddings
 trainval_data = DataLoader(

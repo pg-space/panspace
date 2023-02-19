@@ -7,3 +7,4 @@ sklearn
 tensorflow
 faiss-cpu
 pyyaml
+mlflow
