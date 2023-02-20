@@ -1,3 +1,8 @@
+*__pycache__/
+
+# environment
 env/
 data/
-*__pycache__/
+
+# kmc
+tmp-kmc/
