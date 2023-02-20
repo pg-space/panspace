@@ -1,4 +1,6 @@
 kmer_size: 6
+outdir: "data"
+
 fcgr:
   path_tarfile: null
   path_fcgr: 'data/fcgr-6mer'
