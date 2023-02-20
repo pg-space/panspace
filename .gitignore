@@ -1,8 +1,15 @@
 *__pycache__/
+.snakemake/
 
 # environment
 env/
+
+# data
 data/
+*tar
 
 # kmc
 tmp-kmc/
+
+# experiments ml
+mlruns/
