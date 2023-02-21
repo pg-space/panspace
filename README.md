@@ -10,7 +10,7 @@ mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal
 conda activate snakemake
 ```
 
-This pipeline count kmers using `kmc` and then creates a `npy` file with the FCGR
+This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
 ```bash
 snakemake -s count_kmers.smk -c16 --use-conda
 ```
