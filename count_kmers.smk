@@ -1,32 +1,48 @@
 configfile: "params.yaml"
+import tarfile
 from os.path import join as pjoin
+
+# params 
+KMER_SIZE=config["kmer_size"]
+OUTDIR=config["outdir"]
 
 # check all tarfiles
 DIR_TARFILES=config["fcgr"]["dir_tarfiles"]
 TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
-print(list(TARFILES))
 
-KMER=config["kmer_size"]
-OUTDIR=config["outdir"]
-# mkdir -p {params.tmp_kmc}
+def getnames(tar):
+    "get filenames in tarfiles"
+    with tarfile.open(tar,"r") as fp:
+        return [f for f in  fp.getnames()[:2] ]
+
+FILES_BY_TAR = {tar: getnames(pjoin(DIR_TARFILES, tar + ".tar.xz")) for tar in TARFILES }
+print(FILES_BY_TAR)
+
+LIST_FASTA = []
+for v in FILES_BY_TAR.values():
+    LIST_FASTA.extend(v)
 
 rule all:
     input:
-        expand(pjoin(OUTDIR, "kmer-count","{tarfile}", "summary.txt"), tarfile=TARFILES)
-
+        expand(pjoin(OUTDIR, "kmer-count", "{fasta}"+".kmer.txt"),fasta=LIST_FASTA),
+        
 rule count_kmers:
     input:
-        tarfile=pjoin(DIR_TARFILES,"{tarfile}" + ".tar.xz")
-    output: 
-        check=pjoin(OUTDIR, "kmer-count", "{tarfile}", "summary.txt")
+        tarfile=lambda wildcards: \
+            pjoin(DIR_TARFILES, f"{Path(wildcards.fasta).parent.stem}" + ".tar.xz") ,
+    output:
+        fasta=pjoin(OUTDIR, "kmer-count", "{fasta}"+".kmer.txt")
     conda:
         "envs/kmc.yaml"
     params:
-        max_ram=4,
-        tmp_kmc="tmp-kmc",
-        kmer_size=KMER,
+        max_ram=config["kmc"]["max_ram"],
+        tmp_kmc=config["kmc"]["tmp"],
+        kmer_size=KMER_SIZE,
         path_kmer_count=pjoin(OUTDIR, "kmer-count")
+    threads:
+        config["kmc"]["threads"]
     shell:
         """
-        ./scripts/count_kmers.sh {input.tarfile} {output.check} {params.kmer_size} {params.path_kmer_count}
+        ./scripts/count_kmers.sh {input.tarfile} {wildcards.fasta} {params.kmer_size} {params.path_kmer_count} \
+        {params.max_ram} {params.tmp_kmc} {threads}
         """

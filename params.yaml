@@ -1,10 +1,10 @@
 kmer_size: 6
-outdir: "data"
+outdir: "output"
 
 fcgr:
   path_tarfile: null
-  path_fcgr: 'data/fcgr-6mer'
-  dir_tarfiles: 'data/'
+  path_fcgr: 'output/fcgr'
+  dir_tarfiles: 'data'
 
 train:
   latent_dim: 100
@@ -14,5 +14,10 @@ train:
   patiente_early_stopping: 20
   patiente_learning_rate: 15
   train_size: 0.8
+
+kmc:
+  max_ram: 4
+  tmp: "tmp-kmc"
+  threads: 4
 
 seed: 42

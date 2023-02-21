@@ -3,22 +3,18 @@ The goal is to build an embedding space for bacterial sequences and use them as 
 
 ## 0. Create virtual environment and install dependencies
 ```bash
-python -m venv env 
-source env/bin/activate
-pip install -r requirements.txt
+conda activate base
+mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal
+conda activate snakemake
 ```
 
 ## 1. generate FCGR
 
-To generate FCGR of one file:
+This pipeline count kmers using `kmc` 
 ```bash
-python src/fcgr -k 6 --path-fcgr data/ --path-tarfile <path/to/file.tar.xz> 
+snakemake -s count_kmers.smk -c16
 ```
 
-Or many from a common folder
-```bash
-python src/fcgr -k 6 --path-fcgr data/ --dir-tarfiles <dir/with/files.tar.xz> -w 4 
-```
 ## 2. train VAR
 Once FCGR (npy file) has been generated, we can train a VAR (see `params.yaml`)
 

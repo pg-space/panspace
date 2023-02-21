@@ -2,7 +2,6 @@
 Compute FCGR for all fasta files that are saved in a 
 path/to/<name-bacteria>__<group>.tar.xz file
 """
-from genericpath import exists
 import tarfile
 import numpy as np
 
