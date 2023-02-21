@@ -20,6 +20,7 @@ from dnn.utils.split_data import TrainValTestSplit
 ## Params
 with open("params.yaml") as fp:
     params = yaml.load(fp, Loader=yaml.FullLoader)
+OUTDIR=params["outdir"]
 
 # parameters train
 LATENT_DIM=params['train']['latent_dim']
@@ -32,17 +33,17 @@ TRAIN_SIZE=params['train']['train_size']
 SEED=params['seed']
 
 # folder where to save training results
-PATH_TRAIN = Path("data/train/")
+PATH_TRAIN = Path(f"{OUTDIR}/train/")
 PATH_TRAIN.mkdir(exist_ok=True, parents=True)
 
 # preprocessing of each FCGR to feed the model 
 preprocessing = lambda x: x / x.max() 
 
 # parameters dataset
-PATH_FCGR=params['fcgr']['path_fcgr']
+PATH_FCGR=Path(params['outdir']).joinpath("fcgr")
 
 ## Create train-val-test datasets
-label_from_path=lambda path: Path(path).parent.stem
+label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 
 # paths to fcgr 
 list_npy = list(Path(PATH_FCGR).rglob('*.npy'))
@@ -76,10 +77,10 @@ ds_val = DataLoader(
 
 # - Callbacks: actions that are triggered at the end of each epoch
 # checkpoint: save best weights
-Path('data/train/checkpoints').mkdir(exist_ok=True, parents=True)
+Path(f"{OUTDIR}/train/checkpoints").mkdir(exist_ok=True, parents=True)
 cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
     # filepath='../data/train/checkpoints/weights-{epoch:02d}-{val_loss:.3f}.hdf5',
-    filepath=f'data/train/checkpoints/weights-{ARCHITECTURE}.hdf5',
+    filepath=f'{OUTDIR}/train/checkpoints/weights-{ARCHITECTURE}.hdf5',
     monitor='val_loss',
     mode='min',
     save_best_only=True,
@@ -107,14 +108,14 @@ cb_earlystop = tf.keras.callbacks.EarlyStopping(
 
 # save history of training
 cb_csvlogger = tf.keras.callbacks.CSVLogger(
-    filename='data/train/training_log.csv',
+    filename=f'{OUTDIR}/train/training_log.csv',
     separator='\t',
     append=False
 )
 
 # save time by epoch
 cb_csvtime = CSVTimeHistory(
-    filename='data/train/time_log.csv',
+    filename=f'{OUTDIR}/train/time_log.csv',
     separator='\t',
     append=False
 )
@@ -140,7 +141,7 @@ encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_
 decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
 
 # save encoder and decoder
-path_save_models = Path("data/models")
+path_save_models = Path(f"{OUTDIR}/models")
 encoder.save(path_save_models.joinpath("encoder"))
 decoder.save(path_save_models.joinpath("decoder"))
 
@@ -162,7 +163,7 @@ for data in iter(trainval_data):
 all_emb = np.concatenate(embeddings, axis=0)
 assert len(all_emb) == len(list_train+list_val), "embeddings and ids does not match"
 # save embeddings
-path_emb = Path("data/faiss-embeddings")
+path_emb = Path(f"{OUTDIR}/faiss-embeddings")
 path_emb.mkdir(exist_ok=True, parents=True)
 np.save(file=path_emb.joinpath("embeddings.npy"), arr=all_emb)
 with open(path_emb.joinpath("id_embeddings.json"), "w") as fp:
@@ -185,7 +186,7 @@ for data in iter(test_data):
 all_emb = np.concatenate(embeddings, axis=0)
 assert len(all_emb) == len(list_test), "embeddings and ids does not match"
 # save embeddings
-path_emb = Path("data/faiss-embeddings")
+path_emb = Path(f"{OUTDIR}/faiss-embeddings")
 path_emb.mkdir(exist_ok=True, parents=True)
 np.save(file=path_emb.joinpath("query_embeddings.npy"), arr=all_emb)
 with open(path_emb.joinpath("query_embeddings.json"), "w") as fp:

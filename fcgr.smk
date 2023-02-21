@@ -13,7 +13,7 @@ TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
 def getnames(tar):
     "get filenames in tarfiles"
     with tarfile.open(tar,"r") as fp:
-        return [f for f in  fp.getnames()[:2]]
+        return [f for f in  fp.getnames()[:10]]
 
 FILES_BY_TAR = {tar: getnames(pjoin(DIR_TARFILES, tar + ".tar.xz")) for tar in TARFILES }
 LIST_FASTA = []

@@ -6,6 +6,7 @@ env/
 
 # data
 data/
+output/
 *tar
 
 
