@@ -12,7 +12,7 @@ conda activate snakemake
 
 This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
 ```bash
-snakemake -s count_kmers.smk -c16 --use-conda
+snakemake -s fcgr.smk -c16 --use-conda
 ```
 ___
 For the next steps, create an environment with pip

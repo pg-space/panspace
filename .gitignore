@@ -1,6 +1,6 @@
 *__pycache__/
 .snakemake/
-
+*.ipynb_checkpoints/
 # environment
 env/
 
