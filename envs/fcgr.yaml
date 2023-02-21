@@ -1,0 +1,5 @@
+name: fcgr
+dependencies:
+  - pip:
+    - complexcgr
+    - rich-argparse

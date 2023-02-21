@@ -2,8 +2,6 @@ kmer_size: 6
 outdir: "output"
 
 fcgr:
-  path_tarfile: null
-  path_fcgr: 'output/fcgr'
   dir_tarfiles: 'data'
 
 train:
@@ -19,5 +17,7 @@ kmc:
   max_ram: 4
   tmp: "tmp-kmc"
   threads: 4
+  min_threshold: 1
+  max_threshold: 255
 
 seed: 42
