@@ -6,7 +6,8 @@ env/
 
 # data
 data/
-output/
+output*/
+plots/
 *tar
 
 

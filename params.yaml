@@ -1,9 +1,9 @@
 kmer_size: 6
-outdir: "output"
+outdir: /data/bacteria/experiments/autoencoders
 
 fcgr:
-  dir_tarfiles: 'data'
-
+  dir_tarfiles: "/data/bacteria/dataset"
+  
 train:
   latent_dim: 100
   epochs: 2  
@@ -18,6 +18,6 @@ kmc:
   tmp: "tmp-kmc"
   threads: 4
   min_threshold: 1
-  max_threshold: 255
+  max_threshold: 1000000
 
 seed: 42

@@ -14,7 +14,7 @@ head -n 2 | \
 while read f
     do  
         tar --extract --file=$1 -C $PATH_KCOUNTS $f
-        kmc -v -k$KMER -m4 -sm -ci0 -cs255 -b -t4 -fa "$PATH_KCOUNTS/$f" "$PATH_KCOUNTS/$f" "tmp-kmc"
+        kmc -v -k$KMER -m4 -sm -ci0 -cs100000 -b -t4 -fa "$PATH_KCOUNTS/$f" "$PATH_KCOUNTS/$f" "tmp-kmc"
         kmc_tools -t4 -v transform "$PATH_KCOUNTS/$f" dump "$PATH_KCOUNTS/$f.kmer.txt" 
         rm -r "$PATH_KCOUNTS/$f" "$PATH_KCOUNTS/$f.kmc_pre" "$PATH_KCOUNTS/$f.kmc_suf" 
         echo "Done with $f" >> $OUTFILE

@@ -1,0 +1,16 @@
+name: plots-complexcgr 
+channels:
+  - conda-forge
+  - bioconda
+  - anaconda
+dependencies:
+  - python < 3.9
+  - ipykernel
+  - jupyterlab
+  - seaborn
+  - tqdm
+  - pyyaml
+  - biopython
+  - pip
+  - pip:
+    - complexcgr

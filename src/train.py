@@ -80,7 +80,7 @@ ds_val = DataLoader(
 Path(f"{OUTDIR}/train/checkpoints").mkdir(exist_ok=True, parents=True)
 cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
     # filepath='../data/train/checkpoints/weights-{epoch:02d}-{val_loss:.3f}.hdf5',
-    filepath=f'{OUTDIR}/train/checkpoints/weights-{ARCHITECTURE}.hdf5',
+    filepath=f'{OUTDIR}/train/checkpoints/weights-{ARCHITECTURE}.keras',
     monitor='val_loss',
     mode='min',
     save_best_only=True,
@@ -142,8 +142,9 @@ decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, au
 
 # save encoder and decoder
 path_save_models = Path(f"{OUTDIR}/models")
-encoder.save(path_save_models.joinpath("encoder"))
-decoder.save(path_save_models.joinpath("decoder"))
+path_save_models.mkdir(exist_ok=True, parents=True)
+encoder.save(path_save_models.joinpath("encoder.keras"))
+decoder.save(path_save_models.joinpath("decoder.keras"))
 
 # compute embeddings
 trainval_data = DataLoader(
