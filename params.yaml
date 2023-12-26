@@ -1,18 +1,24 @@
 kmer_size: 6
+# Inside this folder will be created the "{kmer_size}mer/kmer-count/" 
+# and "{kmer_size}mer/fcgr/" directories. The first one with .txt files
+# containing tuples of (k-mer, count). The second one is the FCGR matrix in
+# stored in a .npy file. 
 outdir: /data/bacteria/experiments/autoencoders
 
 fcgr:
   dir_tarfiles: "/data/bacteria/dataset"
   
 train:
+  outdir: "/data/bacteria/experiments/autoencoders/6mer/26122023-2" #<ddmmaa-n>
   latent_dim: 100
-  epochs: 2  
+  epochs: 100  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
   patiente_early_stopping: 20
-  patiente_learning_rate: 15
+  patiente_learning_rate: 10
   train_size: 0.8
 
+# kmer counter
 kmc:
   max_ram: 4
   tmp: "tmp-kmc"

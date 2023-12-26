@@ -16,6 +16,9 @@ def CNNAutoencoderCAEBN(latent_dim: int = 100):
   x = tf.keras.layers.Flatten()(x)
   emb = tf.keras.layers.Dense(latent_dim, activation="relu", name="output_encoder")(x)
 
+  # L2 normalization layer
+  emb = tf.math.l2_normalize(emb, axis=1)
+
   # Decoder
   x = tf.keras.layers.Dense(27 * 27 * 128 , activation="relu", name="input_decoder")(emb)
   x = tf.keras.layers.Reshape((27, 27, 128))(x) # output (27,27,128)

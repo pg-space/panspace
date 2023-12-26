@@ -11,21 +11,25 @@ with open("params.yaml") as fp:
     params = yaml.load(fp, Loader=yaml.FullLoader)
 dim = params["train"]["latent_dim"] 
 OUTDIR = params["outdir"]
+KMER = params["kmer_size"]
+ARCHITECTURE = params['train']['architecture']
+OUTDIR_TRAIN=params["train"]["outdir"]
+Path(f"{OUTDIR_TRAIN}/{ARCHITECTURE}")
 
 # test
-PATH_TEST=Path(f"{OUTDIR}/test")
+PATH_TEST=Path(f"{OUTDIR_TRAIN}/test")
 PATH_TEST.mkdir(exist_ok=True, parents=True)
 
 # index embeddings
-xb = np.load(f"{OUTDIR}/faiss-embeddings/embeddings.npy").astype("float32")
-with open(f"{OUTDIR}/faiss-embeddings/id_embeddings.json") as fp:
+xb = np.load(f"{OUTDIR_TRAIN}/faiss-embeddings/embeddings.npy").astype("float32")
+with open(f"{OUTDIR_TRAIN}/faiss-embeddings/id_embeddings.json") as fp:
     id_xb = json.load(fp)
     id_xb = {int(k): v for k,v in id_xb.items()}
 
 # query embeddings
-xq = np.load(f"{OUTDIR}/faiss-embeddings/query_embeddings.npy").astype("float32")
+xq = np.load(f"{OUTDIR_TRAIN}/faiss-embeddings/query_embeddings.npy").astype("float32")
 
-with open(f"{OUTDIR}/faiss-embeddings/query_embeddings.json") as fp:
+with open(f"{OUTDIR_TRAIN}/faiss-embeddings/query_embeddings.json") as fp:
     id_query = json.load(fp)
     id_query = {int(k): v for k,v in id_query.items()}
 
@@ -35,10 +39,10 @@ print(index.is_trained)
 
 # add vectors to the index
 index.add(xb)                  
-print(index.ntotal)
+print(index.ntotal, "vectors in the index (train+val)")
 
 # load labels for train+val and test
-with open(f"{OUTDIR}/train/split-train-val-test.json","r") as fp:
+with open(f"{OUTDIR_TRAIN}/split-train-val-test.json","r") as fp:
     datasets = json.load(fp)
 trainval = datasets["labels"]["train"] + datasets["labels"]["val"]
 trainval_idx = {k:v for k,v in enumerate(trainval)}

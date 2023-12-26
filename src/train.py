@@ -20,7 +20,10 @@ from dnn.utils.split_data import TrainValTestSplit
 ## Params
 with open("params.yaml") as fp:
     params = yaml.load(fp, Loader=yaml.FullLoader)
-OUTDIR=params["outdir"]
+OUTDIR_FCGR=params["outdir"]
+OUTDIR_TRAIN=params["train"]["outdir"]
+
+KMER=params["kmer_size"]
 
 # parameters train
 LATENT_DIM=params['train']['latent_dim']
@@ -33,27 +36,28 @@ TRAIN_SIZE=params['train']['train_size']
 SEED=params['seed']
 
 # folder where to save training results
-PATH_TRAIN = Path(f"{OUTDIR}/train/")
+PATH_TRAIN = Path(f"{OUTDIR_TRAIN}")
 PATH_TRAIN.mkdir(exist_ok=True, parents=True)
 
 # preprocessing of each FCGR to feed the model 
 preprocessing = lambda x: x / x.max() 
 
 # parameters dataset
-PATH_FCGR=Path(params['outdir']).joinpath("fcgr")
+PATH_FCGR=Path(OUTDIR_FCGR).joinpath(f"{KMER}mer/fcgr")
 
 ## Create train-val-test datasets
 label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 
 # paths to fcgr 
-list_npy = list(Path(PATH_FCGR).rglob('*.npy'))
+list_npy = list(Path(PATH_FCGR).rglob('*/*.npy'))
+print(len(list_npy))
 labels = [label_from_path(path) for path in list_npy]
+from collections import Counter; print(Counter(labels))
 tvt_split = TrainValTestSplit(id_labels=list_npy, labels=labels, seed=SEED)
 tvt_split(train_size=TRAIN_SIZE, balanced_on=labels)# split datasets
 list_train = tvt_split.datasets["id_labels"]["train"]
 list_val   = tvt_split.datasets["id_labels"]["val"]
-list_test   = tvt_split.datasets["id_labels"]["test"]
-
+list_test  = tvt_split.datasets["id_labels"]["test"]
 
 # save split
 with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:
@@ -77,10 +81,10 @@ ds_val = DataLoader(
 
 # - Callbacks: actions that are triggered at the end of each epoch
 # checkpoint: save best weights
-Path(f"{OUTDIR}/train/checkpoints").mkdir(exist_ok=True, parents=True)
+Path(f"{PATH_TRAIN}/checkpoints").mkdir(exist_ok=True, parents=True)
 cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
     # filepath='../data/train/checkpoints/weights-{epoch:02d}-{val_loss:.3f}.hdf5',
-    filepath=f'{OUTDIR}/train/checkpoints/weights-{ARCHITECTURE}.keras',
+    filepath=f'{PATH_TRAIN}/checkpoints/weights-{ARCHITECTURE}.keras',
     monitor='val_loss',
     mode='min',
     save_best_only=True,
@@ -108,14 +112,14 @@ cb_earlystop = tf.keras.callbacks.EarlyStopping(
 
 # save history of training
 cb_csvlogger = tf.keras.callbacks.CSVLogger(
-    filename=f'{OUTDIR}/train/training_log.csv',
+    filename=f'{PATH_TRAIN}/training_log.csv',
     separator='\t',
     append=False
 )
 
 # save time by epoch
 cb_csvtime = CSVTimeHistory(
-    filename=f'{OUTDIR}/train/time_log.csv',
+    filename=f'{PATH_TRAIN}/time_log.csv',
     separator='\t',
     append=False
 )
@@ -141,7 +145,7 @@ encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_
 decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
 
 # save encoder and decoder
-path_save_models = Path(f"{OUTDIR}/models")
+path_save_models = Path(f"{PATH_TRAIN}/models")
 path_save_models.mkdir(exist_ok=True, parents=True)
 encoder.save(path_save_models.joinpath("encoder.keras"))
 decoder.save(path_save_models.joinpath("decoder.keras"))
@@ -164,7 +168,7 @@ for data in iter(trainval_data):
 all_emb = np.concatenate(embeddings, axis=0)
 assert len(all_emb) == len(list_train+list_val), "embeddings and ids does not match"
 # save embeddings
-path_emb = Path(f"{OUTDIR}/faiss-embeddings")
+path_emb = Path(f"{PATH_TRAIN}/faiss-embeddings")
 path_emb.mkdir(exist_ok=True, parents=True)
 np.save(file=path_emb.joinpath("embeddings.npy"), arr=all_emb)
 with open(path_emb.joinpath("id_embeddings.json"), "w") as fp:
@@ -187,7 +191,7 @@ for data in iter(test_data):
 all_emb = np.concatenate(embeddings, axis=0)
 assert len(all_emb) == len(list_test), "embeddings and ids does not match"
 # save embeddings
-path_emb = Path(f"{OUTDIR}/faiss-embeddings")
+path_emb = Path(f"{PATH_TRAIN}/faiss-embeddings")
 path_emb.mkdir(exist_ok=True, parents=True)
 np.save(file=path_emb.joinpath("query_embeddings.npy"), arr=all_emb)
 with open(path_emb.joinpath("query_embeddings.json"), "w") as fp:

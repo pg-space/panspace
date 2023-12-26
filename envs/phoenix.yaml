@@ -1,0 +1,5 @@
+name: phoenix
+channels:
+  - conda-forge
+dependencies:
+  - arize-phoenix
