@@ -5,7 +5,6 @@ channels:
   - pytorch
 dependencies:
   - python <= 3.11
-  # - complexcgr
   - pandas
   - rich
   - tqdm

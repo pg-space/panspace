@@ -1,34 +1,42 @@
 # Embedding bacteria
 The goal is to build an embedding space for bacterial sequences and use them as an index of dense vector to perform fast queries using faiss
 
+## 0. Download dataset
+run the following script to download all compressed file from the [661-bacterial dataset](https://zenodo.org/records/4602622/).
+```bash
+./scripts/download.sh
+```
+
 ## 1. generate FCGR
 
 Create virtual environment for snakemake (each rule has its own environment, see `envs`)
+
 ```bash
-conda activate base
-mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal
-conda activate snakemake
+mamba env create -n snakemake -f envs/smk.yaml
+mamba activate snakemake
 ```
 
 This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
 ```bash
-snakemake -s decompress.smk -c16 --use-conda
+snakemake -s rules/create_fcgr.smk -c16 --use-conda
 ```
-___
-For the next steps, create an environment with pip
+
+## 2. Train Autoencoder and create index
 
 ```bash
-python -m venv env 
-source env/bin/activate
-pip install -r requirements.txt
+snakemake -s rules/create_index.smk -c16 --use-conda
 ```
+
+
+___
+
+## 2. train VAR
+Once FCGR (npy file) has been generated, we can train an Autoencoder (see `params.yaml`)
 
 ```bash
 mamba env create -n train -f envs/train.yaml
+mamba activate train
 ```
-
-## 2. train VAR
-Once FCGR (npy file) has been generated, we can train a VAR (see `params.yaml`)
 
 ```bash
 python src/train.py

@@ -9,9 +9,9 @@ fcgr:
   dir_tarfiles: "/data/bacteria/dataset"
   
 train:
-  outdir: "/data/bacteria/experiments/autoencoders/6mer/26122023-2" #<ddmmaa-n>
+  outdir: "/data/bacteria/experiments/autoencoders/6mer/27122023-2" #<ddmmaa-n>
   latent_dim: 100
-  epochs: 100  
+  epochs: 2  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
   patiente_early_stopping: 20
