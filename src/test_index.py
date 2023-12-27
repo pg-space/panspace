@@ -20,7 +20,7 @@ from dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
 def main(args):
         
     PATH_EXP=args.path_exp #""
-    LATENT_DIM=args.latent_dim # 100
+    # LATENT_DIM=args.latent_dim # 100
     PATH_INDEX=Path(PATH_EXP).joinpath("faiss-embeddings/bacterial.index")
     PATH_TEST=Path(PATH_EXP).joinpath("test")
     # 0. load index
@@ -75,7 +75,7 @@ def main(args):
     neighbors = 10
     D,I = index.search(query_emb, neighbors)
     neighbors_query = get_label(I)
-    ground_truth = datasets["labels"]["test"]
+    ground_truth = list_labels
 
     def majority_vote(list_neighbors): 
         label, _ = Counter(list_neighbors).most_common(1)[0]
@@ -85,8 +85,13 @@ def main(args):
     consensus_3  = [majority_vote(neighbors_query[j][:3]) for j in range(len(neighbors_query))]
     consensus_5  = [majority_vote(neighbors_query[j][:5]) for j in range(len(neighbors_query))]
     consensus_10 = [majority_vote(neighbors_query[j]) for j in range(len(neighbors_query))]
+
     df = pd.concat([ pd.DataFrame(ground_truth,columns=["GT"]),
-                    pd.DataFrame.from_dict({"consensus_1": consensus_1, "consensus_3": consensus_3, "consensus_5": consensus_5, "consensus_10": consensus_10}),
+                    pd.DataFrame.from_dict({
+                        "consensus_1": consensus_1, 
+                        "consensus_3": consensus_3, 
+                        "consensus_5": consensus_5, 
+                        "consensus_10": consensus_10}),
                     pd.DataFrame(neighbors_query)]
                     ,axis=1
                     )
@@ -107,8 +112,8 @@ if __name__ == "__main__":
                         help="path to experiment"
                         )
                     
-    parser.add_argument("--latent-dim", help="dimension of the embedding", dest="latent_dim", type=int, required=True,
-                        )
+    # parser.add_argument("--latent-dim", help="dimension of the embedding", dest="latent_dim", type=int, required=True,
+    #                     )
 
     args = parser.parse_args()
 

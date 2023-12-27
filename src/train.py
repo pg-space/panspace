@@ -17,13 +17,18 @@ from dnn.models import (
 from dnn.callbacks import CSVTimeHistory
 from dnn.utils.split_data import TrainValTestSplit
 
+import logging 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 ## Params
 with open("params.yaml") as fp:
     params = yaml.load(fp, Loader=yaml.FullLoader)
-OUTDIR_FCGR=params["outdir"]
-OUTDIR_TRAIN=params["train"]["outdir"]
+OUTDIR=params["outdir"]
 
 KMER=params["kmer_size"]
+NAME_EXPERIMENT=params["train"]["name_experiment"]
+OUTDIR_TRAIN=Path(OUTDIR).joinpath(f"{KMER}mer/{NAME_EXPERIMENT}")
 
 # parameters train
 LATENT_DIM=params['train']['latent_dim']
@@ -43,7 +48,7 @@ PATH_TRAIN.mkdir(exist_ok=True, parents=True)
 preprocessing = lambda x: x / x.max() 
 
 # parameters dataset
-PATH_FCGR=Path(OUTDIR_FCGR).joinpath(f"{KMER}mer/fcgr")
+PATH_FCGR=Path(OUTDIR).joinpath(f"{KMER}mer/fcgr")
 
 ## Create train-val-test datasets
 label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
@@ -51,13 +56,20 @@ label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 # paths to fcgr 
 list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy') if "dustbin" not in str(p)]
 # print(len(list_npy))
-labels = [label_from_path(path) for path in list_npy][:1000]
+labels = [label_from_path(path) for path in list_npy]#[:1000]
 from collections import Counter; print(Counter(labels))
 tvt_split = TrainValTestSplit(id_labels=list_npy, labels=labels, seed=SEED)
 tvt_split(train_size=TRAIN_SIZE, balanced_on=labels)# split datasets
 list_train = tvt_split.datasets["id_labels"]["train"]
 list_val   = tvt_split.datasets["id_labels"]["val"]
 list_test  = tvt_split.datasets["id_labels"]["test"]
+
+logging.info(f"training on {len(list_train)}")
+logging.info(f"validating on {len(list_val)}")
+logging.info(f"Testing on {len(list_test)}")
+
+with open(PATH_TRAIN.joinpath("summary-split.json"),"w") as fp:
+    json.dump(tvt_split.get_summary_labels(), fp)
 
 # save split
 with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:

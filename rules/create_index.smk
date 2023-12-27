@@ -8,26 +8,31 @@ configfile: "params.yaml"
 from pathlib import Path
 
 KMER = config["kmer_size"]
-PATH_FCGR = Path(config["outdir"]).joinpath(f"{KMER}mer/fcgr")
-PATH_TRAIN = config["train"]["outdir"]
+OUTDIR=config["outdir"]
+PATH_FCGR = Path(OUTDIR).joinpath(f"{KMER}mer/fcgr")
+NAME_EXPERIMENT=config["train"]["name_experiment"]
+PATH_TRAIN=Path(OUTDIR).joinpath(f"{KMER}mer/{NAME_EXPERIMENT}")
 ARCHITECTURE = config["train"]["architecture"]
 LATENT_DIM = config["train"]["latent_dim"]
+
 rule: 
     input: 
         Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
-        # Path(PATH_TRAIN).joinpath("faiss-embeddings/bacterial.index")
+        expand( Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv"), n_neighbors=[1,3,5,10])
 
 rule train:
     output:
         Path(PATH_TRAIN).joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras")
     input:
         list(Path(PATH_FCGR).joinpath(f"{KMER}mer/fcgr").rglob("*/*.npy"))
+    log:
+        Path(PATH_TRAIN).joinpath("logs/train.log")
     conda:
         "../envs/train.yaml"
     resources:
         nvidia_gpu=1
     shell:
-        "python3 src/train.py"
+        "/usr/bin/time -v python3 src/train.py 2> {log}"
 
 rule encoder_decoder:
     output:
@@ -37,10 +42,12 @@ rule encoder_decoder:
         Path(PATH_TRAIN).joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras")
     params:
         dir_save=Path(PATH_TRAIN).joinpath("models")
+    log:
+        Path(PATH_TRAIN).joinpath("logs/encoder_decoder.log")
     conda: 
         "../envs/train.yaml"
     shell:
-        "python3 src/get_encoder_decoder.py --path-chkpt {input} --dir-save {params.dir_save}"
+        "/usr/bin/time -v python3 src/get_encoder_decoder.py --path-chkpt {input} --dir-save {params.dir_save} 2> {log}"
 
 rule create_index:
     output:
@@ -54,10 +61,12 @@ rule create_index:
         latent_dim=LATENT_DIM
     resources:
         nvidia_gpu=1
+    log:
+        Path(PATH_TRAIN).joinpath("logs/create_index.log")
     conda: 
         "../envs/train.yaml"
     shell:
-        "python3 src/create_index.py --path-exp {params.path_exp} --latent-dim {params.latent_dim}"
+        "/usr/bin/time -v python3 src/create_index.py --path-exp {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
 
 rule test_index:
     output:
@@ -68,10 +77,23 @@ rule test_index:
         Path(PATH_TRAIN).joinpath("faiss-embeddings/bacterial.index")
     params:
         path_exp=PATH_TRAIN,
-        latent_dim=LATENT_DIM
     resources:
         nvidia_gpu=1
+    log:
+        Path(PATH_TRAIN).joinpath("logs/test_index.log")
     conda: 
         "../envs/train.yaml"
     shell:
-        "python3 src/test_index.py --path-exp {params.path_exp} --latent-dim {params.latent_dim}"
+        "/usr/bin/time -v python3 src/test_index.py --path-exp {params.path_exp} 2> {log}"
+
+rule metrics_test_index:
+    output:
+        Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv")
+    input:
+        Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
+    conda: 
+        "../envs/train.yaml"
+    params:
+        path_exp=PATH_TRAIN
+    shell:
+        "python3 src/metrics_test_index.py --n-neighbors {wildcards.n_neighbors} --path-exp {params.path_exp}"
