@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - anaconda
   - pytorch
+  - cleanlab
 dependencies:
   - python <= 3.11
   - pandas
@@ -12,6 +13,9 @@ dependencies:
   - tensorflow-gpu
   - faiss-gpu
   - pyyaml
+  - cleanlab
   - pip
+  - ipykernel
+  - jupyterlab
   - pip: 
     - rich-argparse

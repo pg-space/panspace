@@ -1,6 +1,7 @@
 *__pycache__/
 .snakemake/
 *.ipynb_checkpoints/
+.vscode/
 # environment
 env/
 

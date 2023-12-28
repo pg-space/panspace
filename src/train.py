@@ -54,7 +54,7 @@ PATH_FCGR=Path(OUTDIR).joinpath(f"{KMER}mer/fcgr")
 label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 
 # paths to fcgr 
-list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy') if "dustbin" not in str(p)]
+list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy') if "dustbin" not in str(p) and "__01" in str(p)]
 # print(len(list_npy))
 labels = [label_from_path(path) for path in list_npy]#[:1000]
 from collections import Counter; print(Counter(labels))
@@ -151,62 +151,3 @@ autoencoder.fit(
         cb_csvtime
         ]
 )
-
-# #### --------------
-# # Encoder-Decoder
-# encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_encoder").output)
-# decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
-
-# # save encoder and decoder
-# path_save_models = Path(f"{PATH_TRAIN}/models")
-# path_save_models.mkdir(exist_ok=True, parents=True)
-# encoder.save(path_save_models.joinpath("encoder.keras"))
-# decoder.save(path_save_models.joinpath("decoder.keras"))
-
-# #### ---------------
-# # compute embeddings
-# trainval_data = DataLoader(
-#     list_paths=list_train + list_val,
-#     batch_size=10,
-#     shuffle=False,
-#     preprocessing=preprocessing,
-#     inference_mode=True
-# )
-
-# # embeddings train+val
-# embeddings = []
-# for data in iter(trainval_data):
-#     encoded_imgs = encoder(data).numpy()
-#     embeddings.append(encoded_imgs)
-
-# all_emb = np.concatenate(embeddings, axis=0)
-# assert len(all_emb) == len(list_train+list_val), "embeddings and ids does not match"
-# # save embeddings
-# path_emb = Path(f"{PATH_TRAIN}/faiss-embeddings")
-# path_emb.mkdir(exist_ok=True, parents=True)
-# np.save(file=path_emb.joinpath("embeddings.npy"), arr=all_emb)
-# with open(path_emb.joinpath("id_embeddings.json"), "w") as fp:
-#     json.dump({j: str(p) for j,p in enumerate(list_train+list_val)}, fp, indent=4)
-
-# # embeddings test set
-# test_data = DataLoader(
-#     list_paths=list_test,
-#     batch_size=10,
-#     shuffle=False,
-#     preprocessing=preprocessing,
-#     inference_mode=True
-# )
-
-# embeddings = []
-# for data in iter(test_data):
-#     encoded_imgs = encoder(data).numpy()
-#     embeddings.append(encoded_imgs)
-
-# all_emb = np.concatenate(embeddings, axis=0)
-# assert len(all_emb) == len(list_test), "embeddings and ids does not match"
-# # save embeddings
-# path_emb = Path(f"{PATH_TRAIN}/faiss-embeddings")
-# path_emb.mkdir(exist_ok=True, parents=True)
-# np.save(file=path_emb.joinpath("query_embeddings.npy"), arr=all_emb)
-# with open(path_emb.joinpath("query_embeddings.json"), "w") as fp:
-#     json.dump({j: str(p) for j,p in enumerate(list_test)}, fp, indent=4)

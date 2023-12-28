@@ -9,7 +9,7 @@ fcgr:
   dir_tarfiles: "/data/bacteria/dataset"
   
 train:
-  name_experiment: 27122023-5 #<ddmmaa-n>
+  name_experiment: 27122023-5 #<ddmmaaaa-n>
   latent_dim: 100
   epochs: 30  
   batch_size: 16

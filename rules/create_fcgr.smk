@@ -14,7 +14,7 @@ OUTDIR=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer")
 DIR_TARFILES=config["fcgr"]["dir_tarfiles"]
 # TARFILES = ["vibrio_shilonii__01", "vibrio_vulnificus__01"]
 TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
-TARFILES = [tarfile for tarfile in TARFILES if "__01" in tarfile]
+TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
 print(TARFILES)
 
 def aggregate_decompress_tarxz(wildcards,):
