@@ -35,6 +35,9 @@ checkpoint decompress_tarxz:
         directory(pjoin(OUTDIR, "kmer-count" ,"{tarfile}"))
     params:
         outdir=pjoin(OUTDIR,"kmer-count")
+    resources:
+        limit_space=1,
+        disk_mb=10_000_000
     shell:
         """
         mkdir -p {params.outdir}
@@ -45,11 +48,16 @@ rule count_kmers:
     input:
         pjoin(OUTDIR, "kmer-count", "{tarfile}", "{fasta}.fa")
     output:
-        pjoin(OUTDIR,"kmer-count","{tarfile}", "{fasta}.txt")
-    conda:
-        "../envs/kmc.yaml"
+        temp(pjoin(OUTDIR,"kmer-count","{tarfile}", "{fasta}.txt")) # TODO: This should remove the kmer-count text file
     params:
         kmer=KMER_SIZE,
+    conda:
+        "../envs/kmc.yaml"
+    resources:
+        # limit_space=1,
+        disk_mb=10_000_000,
+    priority:
+        100
     shell:
         """
         mkdir -p tmp-kmc
@@ -67,6 +75,11 @@ rule fcgr:
         kmer=KMER_SIZE
     conda: 
         "../envs/fcgr.yaml"
+    # resources:
+    #     # limit_space=1,
+    #     # disk="1GB",
+    priority:
+        150
     shell:
         """
         python3 src/fcgr_kmc.py -k {params.kmer} --path-kmc {input} --path-save {output}
@@ -77,3 +90,5 @@ rule fake_aggregate:
         aggregate_decompress_tarxz
     output: 
         touch( pjoin(OUTDIR, "{tarfile}_aggregate.flag"))
+    priority:
+        200
