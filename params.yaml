@@ -1,3 +1,4 @@
+##### Global ####
 kmer_size: 6
 # Inside this folder will be created the "{kmer_size}mer/kmer-count/" 
 # and "{kmer_size}mer/fcgr/" directories. The first one with .txt files
@@ -5,9 +6,20 @@ kmer_size: 6
 # stored in a .npy file that is used to train models.  
 outdir: /data/bacteria/experiments/autoencoders
 
+##### create_fcgr.smk ######
 fcgr:
   dir_tarfiles: "/data/bacteria/dataset"
-  
+
+# kmer counter
+kmc:
+  max_ram: 4
+  tmp: "tmp-kmc"
+  threads: 4
+  min_threshold: 1
+  max_threshold: 1000000
+
+
+##### create_index.smk ######  
 train:
   name_experiment: 27122023-5 #<ddmmaaaa-n>
   latent_dim: 100
@@ -18,12 +30,13 @@ train:
   patiente_learning_rate: 10
   train_size: 0.8
 
-# kmer counter
-kmc:
-  max_ram: 4
-  tmp: "tmp-kmc"
-  threads: 4
-  min_threshold: 1
-  max_threshold: 1000000
-
 seed: 42
+
+##### query_index.smk ######
+query:
+  dir_fasta: "/data/bacteria/test-query" # all fasta files inside the folder will be used to query the index
+  outdir: "output-query"
+
+
+# /data/bacteria/experiments/autoencoders/6mer/27122023-5
+# /data/bacteria/test-query

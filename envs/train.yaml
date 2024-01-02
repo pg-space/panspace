@@ -14,8 +14,9 @@ dependencies:
   - faiss-gpu
   - pyyaml
   - cleanlab
-  - pip
   - ipykernel
   - jupyterlab
+  - pip
   - pip: 
     - rich-argparse
+    - complexcgr
