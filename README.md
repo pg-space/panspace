@@ -6,15 +6,15 @@ run the following script to download all compressed file from the [661-bacterial
 ```bash
 ./scripts/download.sh
 ```
-
-## 1. generate FCGR
-
+___ 
 Create virtual environment for snakemake (each rule has its own environment, see `envs`)
 
 ```bash
 mamba env create -n snakemake -f envs/smk.yaml
 mamba activate snakemake
 ```
+
+## 1. Generate FCGR
 
 This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
 ```bash
@@ -24,26 +24,20 @@ snakemake -s rules/create_fcgr.smk -c16 --use-conda
 ## 2. Train Autoencoder and create index
 
 ```bash
-snakemake -s rules/create_index.smk -c16 --use-conda
+snakemake -s rules/create_index.smk -c16 --use-conda --resources nvidia_gpu=1
 ```
 
+## 3. Query index
+In params, define the following parameters:
 
-___
+```yaml 
+query:
+  dir_fasta: "/data/bacteria/test-query" # all fasta files inside the folder will be used to query the index
+  outdir: "output-query"
+```
 
-## 2. train VAR
-Once FCGR (npy file) has been generated, we can train an Autoencoder (see `params.yaml`)
+and then run
 
 ```bash
-mamba env create -n train -f envs/train.yaml
-mamba activate train
-```
-
-```bash
-python src/train.py
-```
-
-## 3. build and test the index
-Build the index, query the most similar embeddings
-```bash 
-python src/index.py
+snakemake -s rules/query_index.smk -c16 --use-conda --resources nvidia_gpu=1
 ```

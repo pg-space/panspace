@@ -22,7 +22,7 @@ kmc:
 ##### create_index.smk ######  
 train:
   name_experiment: 27122023-5 #<ddmmaaaa-n>
-  latent_dim: 100
+  latent_dim: 50
   epochs: 30  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
@@ -36,7 +36,3 @@ seed: 42
 query:
   dir_fasta: "/data/bacteria/test-query" # all fasta files inside the folder will be used to query the index
   outdir: "output-query"
-
-
-# /data/bacteria/experiments/autoencoders/6mer/27122023-5
-# /data/bacteria/test-query

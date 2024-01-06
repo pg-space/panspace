@@ -16,7 +16,6 @@ path_by_fasta  = {p.stem: str(p) for p in DIR_FASTA.rglob("*fa")}
 LIST_FASTA = list(path_by_fasta.keys())
 
 print(LIST_FASTA)
-print(path_by_fasta)
 
 rule all:
     input:
@@ -37,7 +36,7 @@ rule count_kmers:
         mkdir -p tmp-kmc
         kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fa {input} {input} "tmp-kmc"
         kmc_tools -t4 -v transform {input} dump {output} 
-        rm -r {input} {input}.kmc_pre {input}.kmc_suf
+        rm -r {input}.kmc_pre {input}.kmc_suf
         """
 
 rule fcgr:
