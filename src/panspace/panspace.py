@@ -1,4 +1,4 @@
-"""Tool bacterspace"""
+"""Tool panspace"""
 
 from enum import Enum
 import typer
@@ -12,7 +12,6 @@ import numpy as np
 from pathlib import Path
 
 # types for typer
-from .test_index import app as app_test_index
 from .trainer import app as app_trainer
 from .index import app as app_index
 

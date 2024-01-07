@@ -1,4 +1,4 @@
-name: library
+name: panspace
 channels:
   - conda-forge
   - anaconda
@@ -6,4 +6,4 @@ dependencies:
   - python >= 3.9, < 3.11
   - pip
   - pip:
-    - -e /home/avila/github/embedding-bacteria 
+    - -e ../..  # install panspace package from setup.cfg

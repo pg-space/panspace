@@ -1,0 +1,9 @@
+name: panspace
+channels:
+  - conda-forge
+  - anaconda
+dependencies:
+  - python >= 3.9, < 3.11
+  - pip
+  - pip:
+    - -e .

@@ -1,10 +1,10 @@
 Metadata-Version: 2.1
-Name: bacterspace
+Name: panspace
 Version: 0.0.1
 Summary: Indexing assemblies with autoencoders and FCGR
-Author: Jorge Avil Cartes
+Author: Jorge Avila Cartes
 Author-email: jorgeavilacartes@gmail.com
-License: MIT
+License: GNU GENERAL PUBLIC LICENSE
 Keywords: index,fcgr,assemblies,bacteria
 Classifier: Intended Audience :: Bioinformaticians
 Classifier: Programming Language :: Python

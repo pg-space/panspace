@@ -28,7 +28,7 @@ rule train:
     log:
         Path(PATH_TRAIN).joinpath("logs/train.log")
     conda:
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     resources:
         nvidia_gpu=1
     params:
@@ -44,7 +44,7 @@ rule train:
         train_size=config["train"]["train_size"],
         seed=config["train"]["seed"],
     shell:
-        """/usr/bin/time -v bacterspace trainer train-autoencoder \
+        """/usr/bin/time -v panspace trainer train-autoencoder \
         --datadir {params.datadir} \
         --outdir {params.outdir} \
         --autoencoder {params.autoencoder} \
@@ -69,9 +69,9 @@ rule encoder_decoder:
     log:
         Path(PATH_TRAIN).joinpath("logs/encoder_decoder.log")
     conda: 
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     shell:
-        "/usr/bin/time -v bacterspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} 2> {log}"
+        "/usr/bin/time -v panspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} 2> {log}"
 
 rule create_index:
     output:
@@ -88,9 +88,9 @@ rule create_index:
     log:
         Path(PATH_TRAIN).joinpath("logs/create_index.log")
     conda: 
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     shell:
-        "/usr/bin/time -v bacterspace index create --path-experiment {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
+        "/usr/bin/time -v panspace index create --path-experiment {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
 
 rule test_index:
     output:
@@ -106,9 +106,9 @@ rule test_index:
     log:
         Path(PATH_TRAIN).joinpath("logs/test_index.log")
     conda: 
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     shell:
-        "/usr/bin/time -v bacterspace index test --path-experiment {params.path_exp} 2> {log}"
+        "/usr/bin/time -v panspace index test --path-experiment {params.path_exp} 2> {log}"
 
 # TODO: join with test_index rule 
 rule metrics_test_index:
@@ -117,8 +117,8 @@ rule metrics_test_index:
     input:
         Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
     conda: 
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     params:
         path_exp=PATH_TRAIN
     shell:
-        "bacterspace index metrics-test --n-neighbors {wildcards.n_neighbors} --path-experiment {params.path_exp} 2> log.err" 
+        "panspace index metrics-test --n-neighbors {wildcards.n_neighbors} --path-experiment {params.path_exp} 2> log.err" 

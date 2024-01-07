@@ -1,6 +1,25 @@
 # Embedding bacteria
 The goal is to build an embedding space for bacterial sequences and use them as an index of dense vector to perform fast queries using faiss
 
+## CLI `panspace`
+
+`panspace` is a library based on tensorflow and faiss index.
+It provides commands for creating FCGR from kmer counts, train an autoencoder,
+extract Encoder and Decoder from a trained model, and create and query an Index
+of embeddings.
+ 
+```bash
+git clone git@github.com:jorgeavilacartes/embedding-bacteria.git
+cd embedding-bacteria
+
+mamba env create -n panspace -f condaenv.yaml
+mamba activate panspace
+
+panspace --help 
+```
+___
+
+
 ## 0. Download dataset
 run the following script to download all compressed file from the [661-bacterial dataset](https://zenodo.org/records/4602622/).
 ```bash

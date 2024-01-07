@@ -74,7 +74,7 @@ rule fcgr:
     params:
         kmer=KMER_SIZE
     conda: 
-        "../envs/bacterspace.yaml"
+        "../envs/panspace.yaml"
     # resources:
     #     # limit_space=1,
     #     # disk="1GB",
@@ -82,7 +82,7 @@ rule fcgr:
         150
     shell:
         """
-        bacterspace trainer fcgr --kmer {params.kmer} --path-kmer-counts {input} --path-save {output} 2>> log.err
+        panspace trainer fcgr --kmer {params.kmer} --path-kmer-counts {input} --path-save {output} 2>> log.err
         """
 
 rule fake_aggregate:
