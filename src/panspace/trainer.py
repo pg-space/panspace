@@ -9,10 +9,19 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+from rich.progress import track
+from rich import print 
+from rich.console import Console
+
 # for typer
 from .utils import Autoencoder, Optimizer
 
-app = typer.Typer(help="Create FCGR, train Autoencoder, and get Encoder to map sequences to the embedding space.")
+console=Console()
+app = typer.Typer(rich_markup_mode="rich",
+    help="""
+    :cat: here you can Create FCGRs, Train an Autoencoder, 
+    and extract the Encoder from it to map FCGRs to the embedding space.
+    """)
 
 @app.command("train-autoencoder", help="Train an autoencoder.")
 def train(
@@ -72,7 +81,7 @@ def train(
     label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 
     # paths to fcgr 
-    list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy') if "dustbin" not in str(p) and "__01" in str(p)]
+    list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy')] # if "dustbin" not in str(p) and "__01" in str(p)]
     # print(len(list_npy))
     labels = [label_from_path(path) for path in list_npy]#[:1000]
     from collections import Counter; print(Counter(labels))
@@ -171,30 +180,53 @@ def train(
     )
 
 @app.command("split-autoencoder",help="Save Encoder and Decoder as separated models.",)
-def split_autoencoder(path_checkpoint: Annotated[Path, typer.Option("--path-checkpoint","-chkpt", help="path to .keras model")],
-         dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder.keras and decoder.keras")],
-         ):
+def split_autoencoder(
+        path_checkpoint: Annotated[Path, typer.Option("--path-checkpoint","-c", help="path to .keras model with trained weights")],
+        dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder and decoder")],
+        encoder_only: Annotated[bool, typer.Option("--encoder-only/ ","-e/ ", help="store only the encoder, decoder will be discarded")] = False,
+        tflite: Annotated[bool, typer.Option("--tflite/ ","-t/ ", help="save models in .tflite format instead of .keras format")] = False,
+        ):
     from pathlib import Path
     import tensorflow as tf
-
+    
+    console.print(":dna: loading autoencoder")
     autoencoder = tf.keras.models.load_model(path_checkpoint)
 
-    # Encoder-Decoder
+    # get Encoder and/or Decoder as separate models
+    console.print(":carpentry_saw: getting encoder...")
     encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_encoder").output)
-    decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
+    if encoder_only is False:
+        console.print(":carpentry_saw: getting encoder...")
+        decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
 
-    # save encoder and decoder
+    # save Encoder and/or Decoder
     path_save_models = Path(dirsave)
     path_save_models.mkdir(exist_ok=True, parents=True)
-    encoder.save(path_save_models.joinpath("encoder.keras"))
-    decoder.save(path_save_models.joinpath("decoder.keras"))
+    
+    name_models = ["encoder"] if encoder_only else ["encoder","decoder"]
+
+    for name_model in name_models:
+        
+        if tflite:
+            console.print(f":copy: saving {name_model} in .tflite")
+            # Convert the models in .tflite format
+            converter = tf.lite.TFLiteConverter.from_keras_model(eval(f"{name_model}"))
+            tflite    = converter.convert()
+
+            # Save the model
+            with open(path_save_models.joinpath(f"{name_model}.tflite"), "wb") as f:
+                f.write(tflite)
+        else:    
+            console.print(f":copy: saving {name_model} in .keras")
+            # Save as .keras models
+            model = eval(f"{name_model}")
+            model.save(path_save_models.joinpath(f"{name_model}.keras"))
 
 @app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
 def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6):
 
-    from typing import Union
     from .fcgr.fcgr_from_kmc import FCGRKmc
     import numpy as np
     from pathlib import Path
