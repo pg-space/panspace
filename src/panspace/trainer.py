@@ -18,10 +18,7 @@ from .utils import Autoencoder, Optimizer
 
 console=Console()
 app = typer.Typer(rich_markup_mode="rich",
-    help="""
-    :cat: here you can Create FCGRs, Train an Autoencoder, 
-    and extract the Encoder from it to map FCGRs to the embedding space.
-    """)
+    help="Create FCGRs, Train an Autoencoder, and extract the Encoder from it to map FCGRs to the embedding space.")
 
 @app.command("train-autoencoder", help="Train an autoencoder.")
 def train(
