@@ -20,7 +20,7 @@ print(LIST_FASTA)
 rule all:
     input:
         pjoin(OUTDIR, "embeddings.npy"),
-        pjoin(OUTDIR, "predictions.csv")
+        pjoin(OUTDIR, "query.csv")
 
 rule count_kmers:
     input:
@@ -58,30 +58,34 @@ rule query_index:
         expand( pjoin(OUTDIR, "fcgr", "{fasta}.npy"), fasta=LIST_FASTA),
     output:
         pjoin(OUTDIR, "embeddings.npy"),
-        temp(pjoin(OUTDIR, "predictions-aux.csv"))
+        temp(pjoin(OUTDIR, "query_results.csv"))
     conda:
         "../envs/panspace.yaml"
     resources:
         nvidia_gpu=1
     params:
         path_fcgr=pjoin(OUTDIR,"fcgr"),
-        path_experiment=PATH_EXP,
+        path_encoder=PATH_EXP.joinpath("models/encoder.keras"),
+        path_index=PATH_EXP.joinpath("faiss-embeddings/panspace.index"),
         outdir=OUTDIR
+    log:
+        OUTDIR.joinpath("logs/query_index.log")
     shell:
         """
-        panspace index query \
-        --path-experiment {params.path_experiment} \
+        /usr/bin/time -v panspace index query \
+        --path-encoder {params.path_encoder} \
+        --path-index {params.path_index} \
         --path-fcgr {params.path_fcgr} \
-        --outdir {params.outdir}
+        --outdir {params.outdir} 2> {log}
         """
 
 rule add_path_fasta_to_predictions:
     input:
-        pjoin(OUTDIR, "predictions-aux.csv")
+        pjoin(OUTDIR, "query_results.csv")
     output:
-        pjoin(OUTDIR, "predictions.csv")
+        pjoin(OUTDIR, "query.csv")
     run:
         import pandas as pd 
         df = pd.read_csv(input[0])
-        df["path_fasta"] = df["sample_id_query"].apply(lambda sample_id: path_by_fasta[sample_id])
-        df.to_csv(output[0])
+        df.insert(0, "path_fasta", df["sample_id_query"].apply(lambda sample_id: path_by_fasta[sample_id]))
+        df.to_csv(output[0],sep="\t")

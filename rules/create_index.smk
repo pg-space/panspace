@@ -17,12 +17,14 @@ LATENT_DIM = config["train"]["latent_dim"]
 
 rule: 
     input: 
-        Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
-        expand( Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv"), n_neighbors=[1,3,5,10])
+        Path(PATH_TRAIN).joinpath("test/query_results.csv"),
+        Path(PATH_TRAIN).joinpath("test/embeddings.npy"),
+        # expand( Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv"), n_neighbors=[1,3,5,10])
 
 rule train:
     output:
-        PATH_TRAIN.joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras")
+        PATH_TRAIN.joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras"),
+        PATH_TRAIN.joinpath("split-train-val-test.json")
     input:
         list(PATH_FCGR.rglob("*/*.npy"))
     log:
@@ -73,15 +75,45 @@ rule encoder_decoder:
     shell:
         "/usr/bin/time -v panspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} 2> {log}"
 
+rule files_to_index_and_query:
+    output:
+        files_to_index=Path(PATH_TRAIN).joinpath("files_to_index.txt"),
+        files_to_query=Path(PATH_TRAIN).joinpath("files_to_query.txt")
+    input:
+        Path(PATH_TRAIN).joinpath("split-train-val-test.json")
+    run:
+        """Create a .txt file with paths and labels for the index"""
+        import json
+        with open(input[0],"r") as fp:
+            datasets = json.load(fp)
+        paths_train = datasets["id_labels"]["train"]
+        paths_val   = datasets["id_labels"]["val"]
+        paths_test  = datasets["id_labels"]["test"]
+        
+        paths_index = paths_train + paths_val
+
+        labels_train = datasets["labels"]["train"]
+        labels_val   = datasets["labels"]["val"]
+        labels_test  = datasets["labels"]["test"]
+        labels_index = labels_train + labels_val
+
+        with open(output[0],"w") as fp:
+            for path, label in zip(paths_index, labels_index):
+                fp.write(f"{path}\t{label}\n")
+
+        with open(output[1],"w") as fp:
+            for path, label in zip(paths_test, labels_test):
+                fp.write(f"{path}\t{label}\n")
+
 rule create_index:
     output:
-        Path(PATH_TRAIN).joinpath("faiss-embeddings/bacterial.index"),
+        Path(PATH_TRAIN).joinpath("faiss-embeddings/panspace.index"),
         Path(PATH_TRAIN).joinpath("faiss-embeddings/embeddings.npy"),
         Path(PATH_TRAIN).joinpath("faiss-embeddings/id_embeddings.json"),
     input:
-        Path(PATH_TRAIN).joinpath(f"models/encoder.keras"),
+        Path(PATH_TRAIN).joinpath("models/encoder.keras"),
+        Path(PATH_TRAIN).joinpath("files_to_index.txt")
     params:
-        path_exp=PATH_TRAIN,
         latent_dim=LATENT_DIM
     resources:
         nvidia_gpu=1
@@ -90,35 +122,48 @@ rule create_index:
     conda: 
         "../envs/panspace.yaml"
     shell:
-        "/usr/bin/time -v panspace index create --path-experiment {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
+        """/usr/bin/time -v panspace index create \
+        --files-to-index {input[1]} \
+        --col-labels 1 \
+        --path-encoder {input[0]} \
+        --path-index {output[0]}\
+        --latent-dim {params.latent_dim} 2> {log}"""
 
 rule test_index:
     output:
-        Path(PATH_TRAIN).joinpath("faiss-embeddings/query_embeddings.npy"),
-        Path(PATH_TRAIN).joinpath("faiss-embeddings/id_query_embeddings.json"),
-        Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
+        embeddings=Path(PATH_TRAIN).joinpath("test/embeddings.npy"),
+        query=Path(PATH_TRAIN).joinpath("test/query_results.csv"),
     input:
-        Path(PATH_TRAIN).joinpath("faiss-embeddings/bacterial.index")
+        path_index=Path(PATH_TRAIN).joinpath("faiss-embeddings/panspace.index"),
+        path_encoder=Path(PATH_TRAIN).joinpath(f"models/encoder.keras"),
+        files_to_query=Path(PATH_TRAIN).joinpath("files_to_query.txt")
     params:
-        path_exp=PATH_TRAIN,
+        path_index=Path(PATH_TRAIN).joinpath("faiss-embeddings/panspace.index"),
+        outdir=Path(PATH_TRAIN).joinpath("test")
     resources:
         nvidia_gpu=1
     log:
         Path(PATH_TRAIN).joinpath("logs/test_index.log")
     conda: 
         "../envs/panspace.yaml"
-    shell:
-        "/usr/bin/time -v panspace index test --path-experiment {params.path_exp} 2> {log}"
+    shell:        
+        """
+        panspace index query \
+        --path-fcgr {input.files_to_query} \
+        --path-encoder {input.path_encoder} \
+        --path-index {input.path_index} \
+        --outdir {params.outdir} 2> {log}
+        """
 
-# TODO: join with test_index rule 
-rule metrics_test_index:
-    output:
-        Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv")
-    input:
-        Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
-    conda: 
-        "../envs/panspace.yaml"
-    params:
-        path_exp=PATH_TRAIN
-    shell:
-        "panspace index metrics-test --n-neighbors {wildcards.n_neighbors} --path-experiment {params.path_exp} 2> log.err" 
+# # TODO: join with test_index rule 
+# rule metrics_test_index:
+#     output:
+#         Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv")
+#     input:
+#         Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
+#     conda: 
+#         "../envs/panspace.yaml"
+#     params:
+#         path_exp=PATH_TRAIN
+#     shell:
+#         "panspace index metrics-test --n-neighbors {wildcards.n_neighbors} --path-experiment {params.path_exp} 2> log.err" 

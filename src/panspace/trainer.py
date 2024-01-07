@@ -193,10 +193,10 @@ def split_autoencoder(
     autoencoder = tf.keras.models.load_model(path_checkpoint)
 
     # get Encoder and/or Decoder as separate models
-    console.print(":carpentry_saw: getting encoder...")
+    console.print(":scissors: getting encoder...")
     encoder = tf.keras.models.Model(autoencoder.input,autoencoder.get_layer("output_encoder").output)
     if encoder_only is False:
-        console.print(":carpentry_saw: getting encoder...")
+        console.print(":scissors: getting encoder...")
         decoder = tf.keras.models.Model(autoencoder.get_layer("input_decoder").input, autoencoder.output)
 
     # save Encoder and/or Decoder
@@ -208,7 +208,7 @@ def split_autoencoder(
     for name_model in name_models:
         
         if tflite:
-            console.print(f":copy: saving {name_model} in .tflite")
+            console.print(f":floppy_disk: saving {name_model} in .tflite")
             # Convert the models in .tflite format
             converter = tf.lite.TFLiteConverter.from_keras_model(eval(f"{name_model}"))
             tflite    = converter.convert()
@@ -217,7 +217,7 @@ def split_autoencoder(
             with open(path_save_models.joinpath(f"{name_model}.tflite"), "wb") as f:
                 f.write(tflite)
         else:    
-            console.print(f":copy: saving {name_model} in .keras")
+            console.print(f":floppy_disk: saving {name_model} in .keras")
             # Save as .keras models
             model = eval(f"{name_model}")
             model.save(path_save_models.joinpath(f"{name_model}.keras"))

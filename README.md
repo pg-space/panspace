@@ -1,4 +1,4 @@
-# Embedding bacteria
+# Embedding bacterial assemblies
 The goal is to build an embedding space for bacterial sequences and use them as an index of dense vector to perform fast queries using faiss
 
 ## CLI `panspace`
@@ -21,7 +21,7 @@ ___
 
 
 ## 0. Download dataset
-run the following script to download all compressed file from the [661-bacterial dataset](https://zenodo.org/records/4602622/).
+run the following script to download all compressed file from the [661k-bacterial dataset](https://zenodo.org/records/4602622/).
 ```bash
 ./scripts/download.sh
 ```
