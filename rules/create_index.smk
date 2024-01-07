@@ -22,17 +22,41 @@ rule:
 
 rule train:
     output:
-        Path(PATH_TRAIN).joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras")
+        PATH_TRAIN.joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras")
     input:
-        list(Path(PATH_FCGR).joinpath(f"{KMER}mer/fcgr").rglob("*/*.npy"))
+        list(PATH_FCGR.rglob("*/*.npy"))
     log:
         Path(PATH_TRAIN).joinpath("logs/train.log")
     conda:
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     resources:
         nvidia_gpu=1
+    params:
+        datadir=PATH_FCGR,
+        outdir=PATH_TRAIN,
+        autoencoder=config["train"]["architecture"],
+        latent_dim=config["train"]["latent_dim"],
+        kmer=config["kmer_size"],
+        batch_size=config["train"]["batch_size"],
+        optimizer=config["train"]["optimizer"],
+        patiente_early_stopping=config["train"]["patiente_early_stopping"],
+        patiente_learning_rate=config["train"]["patiente_learning_rate"],
+        train_size=config["train"]["train_size"],
+        seed=config["train"]["seed"],
     shell:
-        "/usr/bin/time -v python3 src/train.py 2> {log}"
+        """/usr/bin/time -v bacterspace trainer train-autoencoder \
+        --datadir {params.datadir} \
+        --outdir {params.outdir} \
+        --autoencoder {params.autoencoder} \
+        --latent-dim {params.latent_dim} \
+        --kmer {params.kmer} \
+        --batch-size {params.batch_size} \
+        --optimizer {params.optimizer} \
+        --patiente-early-stopping {params.patiente_early_stopping} \
+        --patiente-learning-rate {params.patiente_learning_rate} \
+        --train-size {params.train_size} \
+        --seed {params.seed} 2> {log}
+        """
 
 rule encoder_decoder:
     output:
@@ -45,9 +69,9 @@ rule encoder_decoder:
     log:
         Path(PATH_TRAIN).joinpath("logs/encoder_decoder.log")
     conda: 
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     shell:
-        "/usr/bin/time -v python3 src/get_encoder_decoder.py --path-chkpt {input} --dir-save {params.dir_save} 2> {log}"
+        "/usr/bin/time -v bacterspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} 2> {log}"
 
 rule create_index:
     output:
@@ -64,9 +88,9 @@ rule create_index:
     log:
         Path(PATH_TRAIN).joinpath("logs/create_index.log")
     conda: 
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     shell:
-        "/usr/bin/time -v python3 src/create_index.py --path-exp {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
+        "/usr/bin/time -v bacterspace index create --path-experiment {params.path_exp} --latent-dim {params.latent_dim} 2> {log}"
 
 rule test_index:
     output:
@@ -82,18 +106,19 @@ rule test_index:
     log:
         Path(PATH_TRAIN).joinpath("logs/test_index.log")
     conda: 
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     shell:
-        "/usr/bin/time -v python3 src/test_index.py --path-exp {params.path_exp} 2> {log}"
+        "/usr/bin/time -v bacterspace index test --path-experiment {params.path_exp} 2> {log}"
 
+# TODO: join with test_index rule 
 rule metrics_test_index:
     output:
         Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv")
     input:
         Path(PATH_TRAIN).joinpath("test/test_index.tsv"),
     conda: 
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     params:
         path_exp=PATH_TRAIN
     shell:
-        "python3 src/metrics_test_index.py --n-neighbors {wildcards.n_neighbors} --path-exp {params.path_exp}"
+        "bacterspace index metrics-test --n-neighbors {wildcards.n_neighbors} --path-experiment {params.path_exp} 2> log.err" 

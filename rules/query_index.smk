@@ -47,10 +47,10 @@ rule fcgr:
     params:
         kmer=KMER_SIZE
     conda: 
-        "../envs/fcgr.yaml"
+        "../envs/bacterspace.yaml"
     shell:
         """
-        python3 src/fcgr_kmc.py -k {params.kmer} --path-kmc {input} --path-save {output}
+        bacterspace trainer fcgr -k {params.kmer} --path-kmer-counts {input} --path-save {output}
         """
 
 rule query_index:
@@ -60,17 +60,17 @@ rule query_index:
         pjoin(OUTDIR, "embeddings.npy"),
         temp(pjoin(OUTDIR, "predictions-aux.csv"))
     conda:
-        "../envs/train.yaml"
+        "../envs/bacterspace.yaml"
     resources:
         nvidia_gpu=1
     params:
         path_fcgr=pjoin(OUTDIR,"fcgr"),
-        path_exp=PATH_EXP,
+        path_experiment=PATH_EXP,
         outdir=OUTDIR
     shell:
         """
-        python3 src/query_index.py \
-        --path-exp {params.path_exp} \
+        bacterspace index query \
+        --path-experiment {params.path_experiment} \
         --path-fcgr {params.path_fcgr} \
         --outdir {params.outdir}
         """

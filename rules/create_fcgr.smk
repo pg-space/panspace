@@ -6,22 +6,22 @@ from tqdm import tqdm
 from collections import defaultdict
 from pathlib import Path
 
-# params 
+# params
 KMER_SIZE=config["kmer_size"]
 OUTDIR=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer")
 
 # # --- check all tarfiles ---
 DIR_TARFILES=config["fcgr"]["dir_tarfiles"]
-# TARFILES = ["vibrio_shilonii__01", "vibrio_vulnificus__01"]
-TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
-TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
+TARFILES = ["vibrio_shilonii__01", "vibrio_vulnificus__01"]
+# TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
+# TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
 print(TARFILES)
 
 def aggregate_decompress_tarxz(wildcards,):
+    "Helper function to end checkpoint rule"
     
     output_tarfile = checkpoints.decompress_tarxz.get(**wildcards).output[0]
     list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
-    
     return expand( pjoin(OUTDIR, "fcgr",f"{wildcards.tarfile}","{fasta}.npy"), fasta=list_fasta)    
     
 rule all:
@@ -36,7 +36,7 @@ checkpoint decompress_tarxz:
     params:
         outdir=pjoin(OUTDIR,"kmer-count")
     resources:
-        limit_space=1,
+        limit_space=5,
         disk_mb=10_000_000
     shell:
         """
@@ -48,7 +48,7 @@ rule count_kmers:
     input:
         pjoin(OUTDIR, "kmer-count", "{tarfile}", "{fasta}.fa")
     output:
-        temp(pjoin(OUTDIR,"kmer-count","{tarfile}", "{fasta}.txt")) # TODO: This should remove the kmer-count text file
+        temp(pjoin(OUTDIR,"kmer-count","{tarfile}", "{fasta}.txt"))
     params:
         kmer=KMER_SIZE,
     conda:
@@ -74,7 +74,7 @@ rule fcgr:
     params:
         kmer=KMER_SIZE
     conda: 
-        "../envs/fcgr.yaml"
+        "../envs/bacterspace.yaml"
     # resources:
     #     # limit_space=1,
     #     # disk="1GB",
@@ -82,7 +82,7 @@ rule fcgr:
         150
     shell:
         """
-        python3 src/fcgr_kmc.py -k {params.kmer} --path-kmc {input} --path-save {output}
+        bacterspace trainer fcgr --kmer {params.kmer} --path-kmer-counts {input} --path-save {output} 2>> log.err
         """
 
 rule fake_aggregate:

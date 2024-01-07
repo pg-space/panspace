@@ -1,17 +1,21 @@
-import json
-import tensorflow as tf
-import numpy as np
-import faiss
+import typer 
+from typing_extensions import Annotated
 
-from faiss import write_index, read_index
+app = typer.Typer(help="Create index")
 
-from pathlib import Path
-from dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
+@app.command("create-index")
+def main(path_experiment,
+         latent_dim):
+    import json
+    import faiss
+    import numpy as np
+    import tensorflow as tf
 
-def main(args):
+    from pathlib import Path
+    from .dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
         
-    PATH_EXP=args.path_exp #""
-    LATENT_DIM=args.latent_dim # 100
+    PATH_EXP=path_experiment
+    LATENT_DIM=latent_dim
     PATH_INDEX=Path(PATH_EXP).joinpath("faiss-embeddings/bacterial.index")
     PATH_INDEX.parent.mkdir(exist_ok=True, parents=True)
     # 1. load encoder
@@ -62,26 +66,4 @@ def main(args):
     print(index.ntotal, "vectors in the index (train+val)")
 
     # 5. save index
-    write_index(index, str(PATH_INDEX))
-
-
-if __name__ == "__main__":
-    import argparse
-    from rich_argparse import RichHelpFormatter
-    
-    ## Parser
-    parser = argparse.ArgumentParser(
-                description="Create Index with train and validation sets", 
-                prog="Faiss-Index", 
-                formatter_class=RichHelpFormatter
-                )
-    parser.add_argument("--path-exp", dest="path_exp", type=str, default=None, required=True,
-                        help="path to experiment"
-                        )
-                    
-    parser.add_argument("--latent-dim", help="dimension of the embedding", dest="latent_dim", type=int, required=True,
-                        )
-
-    args = parser.parse_args()
-
-    main(args)
+    faiss.write_index(index, str(PATH_INDEX))

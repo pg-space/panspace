@@ -1,4 +1,9 @@
+import typer 
+from typing_extensions import Annotated
 
+app = typer.Typer()
+
+@app.command("test")
 def main(args):
     
     import json
@@ -67,28 +72,28 @@ def main(args):
     pd.DataFrame(data_metrics).sort_values(by="precision").to_csv(Path(PATH_EXP).joinpath(f"test/precision_recall_consensus_{N_NEIGHBORS}.csv"),sep="\t")
 
 
-if __name__ == "__main__":
-    import argparse
-    from rich_argparse import RichHelpFormatter
+# if __name__ == "__main__":
+#     import argparse
+#     from rich_argparse import RichHelpFormatter
     
-    ## Parser
-    parser = argparse.ArgumentParser(
-                description="Metrics Test: query Faiss Index with test set", 
-                prog="Metrics Query", 
-                formatter_class=RichHelpFormatter
-                )
+#     ## Parser
+#     parser = argparse.ArgumentParser(
+#                 description="Metrics Test: query Faiss Index with test set", 
+#                 prog="Metrics Query", 
+#                 formatter_class=RichHelpFormatter
+#                 )
     
-    parser.add_argument("--n-neighbors", dest="n_neighbors", type=int, default=1, required=True, choices=[1,3,5,10],
-                        help="number of neighbors to decide the consensus label to the query sequence"
-                        )
+#     parser.add_argument("--n-neighbors", dest="n_neighbors", type=int, default=1, required=True, choices=[1,3,5,10],
+#                         help="number of neighbors to decide the consensus label to the query sequence"
+#                         )
     
-    parser.add_argument("--path-exp", dest="path_exp", type=str, default=None, required=True,
-                        help="path to experiment"
-                        )
+#     parser.add_argument("--path-exp", dest="path_exp", type=str, default=None, required=True,
+#                         help="path to experiment"
+#                         )
                     
-    # parser.add_argument("--latent-dim", help="dimension of the embedding", dest="latent_dim", type=int, required=True,
-    #                     )
+#     # parser.add_argument("--latent-dim", help="dimension of the embedding", dest="latent_dim", type=int, required=True,
+#     #                     )
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
 
-    main(args)
+#     main(args)
