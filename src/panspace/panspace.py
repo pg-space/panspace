@@ -15,10 +15,10 @@ from pathlib import Path
 from .trainer import app as app_trainer
 from .index import app as app_index
 
-app = typer.Typer()
+app = typer.Typer(rich_markup_mode="rich", help=":dna: panspace, Indexing and Querying pan-genomes with embeddings :dna:")
 app.add_typer(app_index, name="index")
 app.add_typer(app_trainer, name="trainer")
 
-@app.command("docs", help="Open documentation webpage")
+@app.command("docs", help="Open documentation webpage.")
 def github():
     typer.launch("https://github.com/jorgeavilacartes/embedding-bacteria")

@@ -12,9 +12,9 @@ logger.setLevel(logging.INFO)
 # for typer
 from .utils import Autoencoder, Optimizer
 
-app = typer.Typer(help="Create FCGR, train autoencoder, and get Encoder to map sequences to the embedding space")
+app = typer.Typer(help="Create FCGR, train Autoencoder, and get Encoder to map sequences to the embedding space.")
 
-@app.command("train-autoencoder", help="Train an autoencoder")
+@app.command("train-autoencoder", help="Train an autoencoder.")
 def train(
         datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored")],
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
@@ -170,7 +170,7 @@ def train(
             ]
     )
 
-@app.command("split-autoencoder",help="Save encoder and decoder as separated models",)
+@app.command("split-autoencoder",help="Save Encoder and Decoder as separated models.",)
 def split_autoencoder(path_checkpoint: Annotated[Path, typer.Option("--path-checkpoint","-chkpt", help="path to .keras model")],
          dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder.keras and decoder.keras")],
          ):
@@ -189,7 +189,7 @@ def split_autoencoder(path_checkpoint: Annotated[Path, typer.Option("--path-chec
     encoder.save(path_save_models.joinpath("encoder.keras"))
     decoder.save(path_save_models.joinpath("decoder.keras"))
 
-@app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts")
+@app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
 def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6):

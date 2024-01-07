@@ -7,9 +7,9 @@ from rich import print
 from rich.console import Console
 
 console=Console()
-app = typer.Typer(help="Create index")
+app = typer.Typer(help="Create and query index. Utilities to test index.")
 
-@app.command("create",help="Create a faiss Index with the embeddings produced by the Encoder")
+@app.command("create",help="Create a faiss Index with the embeddings produced by the Encoder.")
 def create_index(
         path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension embeddings")]
@@ -77,7 +77,7 @@ def create_index(
     # 5. save index
     faiss.write_index(index, str(PATH_INDEX))
 
-@app.command("query", help="Query Index with FCGR from other sequences")
+@app.command("query", help="Query Index with FCGR from other sequences.")
 def query_index(path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
                 path_fcgr: Annotated[Path, typer.Option("--path-fcgr","-p", help="path to folder with FCGR in .npy format")],
                 outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
@@ -172,7 +172,7 @@ def query_index(path_experiment: Annotated[Path, typer.Option("--path-experiment
     np.save( Path(OUTDIR).joinpath("embeddings.npy") , query_emb )  
     console.print(":dna: Done!")
 
-@app.command("test", help="Test index of an experiment in the classification task")
+@app.command("test", help="Test index of an experiment in the classification task.")
 def test_index(
     path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")]
     ):
@@ -264,7 +264,7 @@ def test_index(
                     )
     df.to_csv(PATH_TEST.joinpath("test_index.tsv"),sep="\t")
 
-@app.command("metrics-test", help="Compute metrics for test", deprecated=True)
+@app.command("metrics-test", help="Compute metrics for test.", deprecated=True)
 def test_index(
             path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
             n_neighbors: Annotated[int, typer.Option("--n-neighbors","-n", min=1, help="path to experiment")],
