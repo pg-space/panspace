@@ -7,4 +7,3 @@ dependencies:
   - pip
   - pip:
     - -e .
-    - pyinstaller # create binary executable 

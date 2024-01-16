@@ -22,8 +22,9 @@ app = typer.Typer(rich_markup_mode="rich",
 
 @app.command("train-autoencoder", help="Train an autoencoder.")
 def train(
-        datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored")],
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
+        datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored. If None, training_list will be used")] = None,
+        training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR to be used for training the autoencoder. If None, datadir will be used")] = None,
         autoencoder: Annotated[Autoencoder, typer.Option(help="name of autoencoder to use for training")] = Autoencoder.CNNAutoencoderCAEBN.value,
         latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 100, 
         kmer: Annotated[int, typer.Option(min=1)] = 6,
@@ -34,11 +35,10 @@ def train(
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
         train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8,
         seed: Annotated[int, typer.Option(help= "to reproduce split of dataset")] = 42,
-        training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR to be used for training the autoencoder")] = None,
         ) -> None:
     print(f"Training neural network of type: {autoencoder.value}")
 
-
+    from collections import Counter
     import tensorflow as tf
     from .dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
     from .dnn.models import (
@@ -53,6 +53,8 @@ def train(
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.utils.split_data import TrainValTestSplit
 
+    assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
+    
     KMER=kmer
 
     # parameters train
@@ -72,34 +74,53 @@ def train(
     # preprocessing of each FCGR to feed the model 
     preprocessing = lambda x: x / x.max() 
 
-    # parameters dataset
-    PATH_FCGR=Path(datadir) #Path(OUTDIR).joinpath(f"{KMER}mer/fcgr")
+    # ------ data split ------
+    if datadir is not None:
+        # From a directory with .npy files
+        #FIXME: this only works for the bacterial dataset in its current form
 
-    ## Create train-val-test datasets
-    label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
+        # parameters dataset
+        PATH_FCGR=Path(datadir)
 
-    # paths to fcgr 
-    list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy')] # if "dustbin" not in str(p) and "__01" in str(p)]
-    # print(len(list_npy))
-    labels = [label_from_path(path) for path in list_npy]#[:1000]
-    from collections import Counter; print(Counter(labels))
-    tvt_split = TrainValTestSplit(id_labels=list_npy, labels=labels, seed=SEED)
-    tvt_split(train_size=TRAIN_SIZE, balanced_on=labels)# split datasets
-    list_train = tvt_split.datasets["id_labels"]["train"]
-    list_val   = tvt_split.datasets["id_labels"]["val"]
-    list_test  = tvt_split.datasets["id_labels"]["test"]
+        ## Create train-val-test datasets 
+        label_from_path=lambda path: Path(path).parent.stem.split("__")[0]
 
-    logging.info(f"training on {len(list_train)}")
-    logging.info(f"validating on {len(list_val)}")
-    logging.info(f"Testing on {len(list_test)}")
+        # paths to fcgr 
+        list_npy = [p for p in Path(PATH_FCGR).rglob('*/*.npy')] # if "dustbin" not in str(p) and "__01" in str(p)]
+        labels = [label_from_path(path) for path in list_npy]#[:1000]
+        
+        tvt_split = TrainValTestSplit(id_labels=list_npy, labels=labels, seed=SEED)
+        tvt_split(train_size=TRAIN_SIZE, balanced_on=labels)# split datasets
+        list_train = tvt_split.datasets["id_labels"]["train"]
+        list_val   = tvt_split.datasets["id_labels"]["val"]
+        list_test  = tvt_split.datasets["id_labels"]["test"]
 
-    with open(PATH_TRAIN.joinpath("summary-split.json"),"w") as fp:
-        json.dump(tvt_split.get_summary_labels(), fp)
+        logging.info(f"training on {len(list_train)}")
+        logging.info(f"validating on {len(list_val)}")
+        logging.info(f"Testing on {len(list_test)}")
 
-    # save split
-    with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:
-        json.dump(tvt_split.datasets, fp, indent=4)
+        with open(PATH_TRAIN.joinpath("summary-split.json"),"w") as fp:
+            json.dump(tvt_split.get_summary_labels(), fp)
 
+        # save split
+        with open(PATH_TRAIN.joinpath("split-train-val-test.json"),"w") as fp:
+            json.dump(tvt_split.datasets, fp, indent=4)
+    else:
+        # From training list
+        list_paths = []
+        with open(training_list, "r") as fp:
+            for line in fp.readlines():
+                path = line.replace("\n","").strip()
+                if path.endswith(".npy"): 
+                    list_paths.append(path)
+
+        N_paths = len(list_paths)
+        pos_cut = int(N_paths*train_size)
+        list_train = list_paths[:pos_cut]
+        list_val   = list_paths[pos_cut:]
+
+    # ------ training -----
+        
     # dataset train
     ds_train = DataLoader(
         list_paths=list_train,
@@ -120,7 +141,6 @@ def train(
     # checkpoint: save best weights
     Path(f"{PATH_TRAIN}/checkpoints").mkdir(exist_ok=True, parents=True)
     cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        # filepath='../data/train/checkpoints/weights-{epoch:02d}-{val_loss:.3f}.hdf5',
         filepath=f'{PATH_TRAIN}/checkpoints/weights-{ARCHITECTURE}.keras',
         monitor='val_loss',
         mode='min',
@@ -179,10 +199,10 @@ def train(
 
 @app.command("split-autoencoder",help="Save Encoder and Decoder as separated models.",)
 def split_autoencoder(
-        path_checkpoint: Annotated[Path, typer.Option("--path-checkpoint","-c", help="path to .keras model with trained weights")],
-        dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder and decoder")],
-        encoder_only: Annotated[bool, typer.Option("--encoder-only/ ","-e/ ", help="store only the encoder, decoder will be discarded")] = False,
-        tflite: Annotated[bool, typer.Option("--tflite/ ","-t/ ", help="save models in .tflite format instead of .keras format")] = False,
+        path_checkpoint: Annotated[Path, typer.Option("--path-checkpoint","-c", help="path to .keras model with trained weights.")],
+        dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder and decoder.")],
+        encoder_only: Annotated[bool, typer.Option("--encoder-only/ ","-e/ ", help="store only the encoder, decoder will be discarded.")] = False,
+        tflite: Annotated[bool, typer.Option("--tflite/ ","-t/ ", help="save models in .tflite format instead of .keras format.")] = False,
         ) -> None:
     from pathlib import Path
     import tensorflow as tf
@@ -221,8 +241,8 @@ def split_autoencoder(
             model.save(path_save_models.joinpath(f"{name_model}.keras"))
 
 @app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
-def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts")],
-                path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR")],
+def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
+                path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
 
     from .fcgr.fcgr_from_kmc import FCGRKmc
@@ -233,3 +253,48 @@ def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-coun
     m = fcgr(path_kmer_counts)
     Path(path_save).parent.mkdir(exist_ok=True, parents=True)
     np.save(path_save, m)
+
+@app.command("split-data", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
+def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to .npy file to store FCGR.")],
+               outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
+               kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = None):
+    
+    from pathlib import Path
+    from .dnn.utils.split_data import TrainValTestSplit
+    from .dnn.utils.split_data_cross_validation import CrossValidationSplit
+
+    list_paths = [str(p) for p in Path(datadir).rglob("*.npy")]
+
+    outdir=Path(outdir)
+    outdir.mkdir(exist_ok=True, parents=True)
+
+    if kfold:
+        split_cv = CrossValidationSplit(kfolds=kfold)
+        paths_by_partition = split_cv(list_paths)
+        
+        ids_partition = set(paths_by_partition.keys())
+        for id_partition, paths_partition in paths_by_partition.items():
+            print(id_partition)
+            # for test consider 1 fold  
+            list_test  = paths_partition
+            
+            # for train consider the remaining (k-1) folds
+            list_train = []
+            id_partitions_train = set(ids_partition) - set([id_partition])
+            print(id_partitions_train)
+            for id_partition_train in id_partitions_train:
+                list_train.extend(
+                    paths_by_partition[id_partition_train]
+                )
+
+            path_train = outdir.joinpath(f"train_{id_partition}-fold.txt")
+            print(path_train)
+            with open(path_train, "w") as fp:
+                for path in list_train:
+                    fp.write(f"{path}\n")
+
+            path_test=outdir.joinpath(f"test_{id_partition}-fold.txt")
+            print(path_test)
+            with open(path_test, "w") as fp:
+                for path in list_test:
+                    fp.write(f"{path}\n")
