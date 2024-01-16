@@ -5,6 +5,11 @@
 # environment
 env/
 
+build
+dist
+*.spec
+*.err
+
 # data
 data/
 output*/

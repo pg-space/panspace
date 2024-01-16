@@ -20,7 +20,7 @@ print(LIST_FASTA)
 rule all:
     input:
         pjoin(OUTDIR, "embeddings.npy"),
-        pjoin(OUTDIR, "predictions.csv")
+        pjoin(OUTDIR, "query.csv")
 
 rule count_kmers:
     input:
@@ -47,10 +47,10 @@ rule fcgr:
     params:
         kmer=KMER_SIZE
     conda: 
-        "../envs/fcgr.yaml"
+        "../envs/panspace.yaml"
     shell:
         """
-        python3 src/fcgr_kmc.py -k {params.kmer} --path-kmc {input} --path-save {output}
+        panspace trainer fcgr -k {params.kmer} --path-kmer-counts {input} --path-save {output}
         """
 
 rule query_index:
@@ -58,30 +58,34 @@ rule query_index:
         expand( pjoin(OUTDIR, "fcgr", "{fasta}.npy"), fasta=LIST_FASTA),
     output:
         pjoin(OUTDIR, "embeddings.npy"),
-        temp(pjoin(OUTDIR, "predictions-aux.csv"))
+        temp(pjoin(OUTDIR, "query_results.csv"))
     conda:
-        "../envs/train.yaml"
+        "../envs/panspace.yaml"
     resources:
         nvidia_gpu=1
     params:
         path_fcgr=pjoin(OUTDIR,"fcgr"),
-        path_exp=PATH_EXP,
+        path_encoder=PATH_EXP.joinpath("models/encoder.keras"),
+        path_index=PATH_EXP.joinpath("faiss-embeddings/panspace.index"),
         outdir=OUTDIR
+    log:
+        OUTDIR.joinpath("logs/query_index.log")
     shell:
         """
-        python3 src/query_index.py \
-        --path-exp {params.path_exp} \
+        /usr/bin/time -v panspace index query \
+        --path-encoder {params.path_encoder} \
+        --path-index {params.path_index} \
         --path-fcgr {params.path_fcgr} \
-        --outdir {params.outdir}
+        --outdir {params.outdir} 2> {log}
         """
 
 rule add_path_fasta_to_predictions:
     input:
-        pjoin(OUTDIR, "predictions-aux.csv")
+        pjoin(OUTDIR, "query_results.csv")
     output:
-        pjoin(OUTDIR, "predictions.csv")
+        pjoin(OUTDIR, "query.csv")
     run:
         import pandas as pd 
         df = pd.read_csv(input[0])
-        df["path_fasta"] = df["sample_id_query"].apply(lambda sample_id: path_by_fasta[sample_id])
-        df.to_csv(output[0])
+        df.insert(0, "path_fasta", df["sample_id_query"].apply(lambda sample_id: path_by_fasta[sample_id]))
+        df.to_csv(output[0],sep="\t")

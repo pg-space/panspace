@@ -21,16 +21,16 @@ kmc:
 
 ##### create_index.smk ######  
 train:
-  name_experiment: 27122023-5 #<ddmmaaaa-n>
-  latent_dim: 50
-  epochs: 30  
+  name_experiment: 07012024-1 #<ddmmaaaa-n>
+  latent_dim: 100
+  epochs: 100  
   batch_size: 16
   architecture: 'CNNAutoencoderCAEBN'
   patiente_early_stopping: 20
   patiente_learning_rate: 10
   train_size: 0.8
-
-seed: 42
+  optimizer: adam
+  seed: 42
 
 ##### query_index.smk ######
 query:

@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: panspace
+Version: 0.0.1
+Summary: Indexing assemblies with autoencoders and FCGR
+Author: Jorge Avila Cartes
+Author-email: jorgeavilacartes@gmail.com
+License: GNU GENERAL PUBLIC LICENSE
+Keywords: index,fcgr,assemblies,bacteria
+Classifier: Intended Audience :: Bioinformaticians
+Classifier: Programming Language :: Python
+Requires-Python: <=3.11,>=3.9
+License-File: LICENSE
+Requires-Dist: typer[all]
+Requires-Dist: tensorflow==2.15.0
+Requires-Dist: faiss-gpu==1.7.2
+Requires-Dist: scikit-learn==1.3.2
+Requires-Dist: cleanlab==2.5.0
+Requires-Dist: complexcgr==0.8.0
+Requires-Dist: pandas==2.1.4
+Requires-Dist: rich==13.7.0
+Requires-Dist: rich-argparse==1.4.0
+Requires-Dist: tqdm==4.66.1

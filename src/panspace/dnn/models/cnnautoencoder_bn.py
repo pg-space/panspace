@@ -18,7 +18,8 @@ def CNNAutoencoderBN(latent_dim: int = 100):
   x = tf.keras.layers.BatchNormalization(axis=-1)(x)
   x = tf.keras.layers.Conv2DTranspose(filters=32, kernel_size=(2,2), strides=2, activation="relu")(x)  # output (32,32,8)
   x = tf.keras.layers.BatchNormalization(axis=-1)(x)
-  out_dec = tf.keras.layers.Conv2DTranspose(filters=1, kernel_size=(2,2), strides=2, activation="relu", name="output_decoder")(x)   # output (64,64,1) 
+  # out_dec = tf.keras.layers.Conv2DTranspose(filters=1, kernel_size=(2,2), strides=2, activation="relu", name="output_decoder")(x)   # output (64,64,1) 
+  out_dec = tf.keras.layers.Conv2DTranspose(filters=1, kernel_size=(2,2), strides=2, activation="sigmoid", name="output_decoder")(x)   # output (64,64,1), values in [0,1] 
 
   autoencoder = tf.keras.models.Model(inputs=input_enc, outputs=out_dec)
 
