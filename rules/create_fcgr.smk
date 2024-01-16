@@ -12,8 +12,8 @@ OUTDIR=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer")
 
 # # --- check all tarfiles ---
 DIR_TARFILES=config["fcgr"]["dir_tarfiles"]
-TARFILES = ["vibrio_shilonii__01", "vibrio_vulnificus__01"]
-# TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
+# TARFILES = ["vibrio_shilonii__01", "vibrio_vulnificus__01"]
+TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
 # TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
 print(TARFILES)
 
@@ -36,7 +36,7 @@ checkpoint decompress_tarxz:
     params:
         outdir=pjoin(OUTDIR,"kmer-count")
     resources:
-        limit_space=5,
+        # limit_space=5,
         disk_mb=10_000_000
     shell:
         """
@@ -56,8 +56,8 @@ rule count_kmers:
     resources:
         # limit_space=1,
         disk_mb=10_000_000,
-    priority:
-        100
+    # priority:
+    #     100
     shell:
         """
         mkdir -p tmp-kmc
@@ -78,8 +78,8 @@ rule fcgr:
     # resources:
     #     # limit_space=1,
     #     # disk="1GB",
-    priority:
-        150
+    # priority:
+    #     150
     shell:
         """
         panspace trainer fcgr --kmer {params.kmer} --path-kmer-counts {input} --path-save {output} 2>> log.err

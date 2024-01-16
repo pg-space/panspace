@@ -60,3 +60,10 @@ and then run
 ```bash
 snakemake -s rules/query_index.smk -c16 --use-conda --resources nvidia_gpu=1
 ```
+
+___
+
+### Create binary executable
+```bash
+pyinstaller src/panspace/panspace.py --onefile --name panspace
+```

@@ -18,7 +18,7 @@ def create_index(
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
-        ):
+        ) -> None:
     import json
     import faiss
     import numpy as np
@@ -45,6 +45,8 @@ def create_index(
 
     # list_train = datasets["id_labels"]["train"]
     # list_val   = datasets["id_labels"]["val"]
+
+    # load paths and labels
     index_paths, index_labels = [],[]
 
     with open(files_to_index, "r") as fp:
@@ -106,7 +108,7 @@ def query_index(
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
-        ):
+        ) -> None:
     
     import json
     import tensorflow as tf
@@ -214,7 +216,7 @@ def query_index(
 def metrics_test_index(
             path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
             n_neighbors: Annotated[int, typer.Option("--n-neighbors","-n", min=1, help="path to experiment")],
-            ):
+            ) -> None:
     
     import json
     import pandas as pd

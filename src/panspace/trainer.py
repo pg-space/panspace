@@ -34,7 +34,8 @@ def train(
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
         train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8,
         seed: Annotated[int, typer.Option(help= "to reproduce split of dataset")] = 42,
-        ):
+        training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR to be used for training the autoencoder")] = None,
+        ) -> None:
     print(f"Training neural network of type: {autoencoder.value}")
 
 
@@ -182,7 +183,7 @@ def split_autoencoder(
         dirsave: Annotated[Path, typer.Option("--dirsave","-ds", help="directory to save encoder and decoder")],
         encoder_only: Annotated[bool, typer.Option("--encoder-only/ ","-e/ ", help="store only the encoder, decoder will be discarded")] = False,
         tflite: Annotated[bool, typer.Option("--tflite/ ","-t/ ", help="save models in .tflite format instead of .keras format")] = False,
-        ):
+        ) -> None:
     from pathlib import Path
     import tensorflow as tf
     
@@ -222,7 +223,7 @@ def split_autoencoder(
 @app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
 def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR")],
-                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6):
+                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
 
     from .fcgr.fcgr_from_kmc import FCGRKmc
     import numpy as np
