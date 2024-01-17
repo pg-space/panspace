@@ -274,26 +274,25 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
         
         ids_partition = set(paths_by_partition.keys())
         for id_partition, paths_partition in paths_by_partition.items():
-            print(id_partition)
             # for test consider 1 fold  
             list_test  = paths_partition
             
             # for train consider the remaining (k-1) folds
             list_train = []
             id_partitions_train = set(ids_partition) - set([id_partition])
-            print(id_partitions_train)
+
             for id_partition_train in id_partitions_train:
                 list_train.extend(
                     paths_by_partition[id_partition_train]
                 )
 
-            path_train = outdir.joinpath(f"train_{id_partition}-fold.txt")
+            path_train = outdir.joinpath(f"train_{id_partition+1}-fold.txt")
             print(path_train)
             with open(path_train, "w") as fp:
                 for path in list_train:
                     fp.write(f"{path}\n")
 
-            path_test=outdir.joinpath(f"test_{id_partition}-fold.txt")
+            path_test=outdir.joinpath(f"test_{id_partition+1}-fold.txt")
             print(path_test)
             with open(path_test, "w") as fp:
                 for path in list_test:

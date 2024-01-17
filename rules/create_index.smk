@@ -21,44 +21,46 @@ rule:
         Path(PATH_TRAIN).joinpath("test/embeddings.npy"),
         # expand( Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv"), n_neighbors=[1,3,5,10])
 
-# rule train:
-#     output:
-#         PATH_TRAIN.joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras"),
-#         PATH_TRAIN.joinpath("split-train-val-test.json")
-#     input:
-#         list(PATH_FCGR.rglob("*/*.npy"))
-#     log:
-#         Path(PATH_TRAIN).joinpath("logs/train.log")
-#     conda:
-#         "../envs/panspace.yaml"
-#     resources:
-#         nvidia_gpu=1
-#     params:
-#         datadir=PATH_FCGR,
-#         outdir=PATH_TRAIN,
-#         autoencoder=config["train"]["architecture"],
-#         latent_dim=config["train"]["latent_dim"],
-#         kmer=config["kmer_size"],
-#         batch_size=config["train"]["batch_size"],
-#         optimizer=config["train"]["optimizer"],
-#         patiente_early_stopping=config["train"]["patiente_early_stopping"],
-#         patiente_learning_rate=config["train"]["patiente_learning_rate"],
-#         train_size=config["train"]["train_size"],
-#         seed=config["train"]["seed"],
-#     shell:
-#         """/usr/bin/time -v panspace trainer train-autoencoder \
-#         --datadir {params.datadir} \
-#         --outdir {params.outdir} \
-#         --autoencoder {params.autoencoder} \
-#         --latent-dim {params.latent_dim} \
-#         --kmer {params.kmer} \
-#         --batch-size {params.batch_size} \
-#         --optimizer {params.optimizer} \
-#         --patiente-early-stopping {params.patiente_early_stopping} \
-#         --patiente-learning-rate {params.patiente_learning_rate} \
-#         --train-size {params.train_size} \
-#         --seed {params.seed} 2> {log}
-#         """
+rule train:
+    output:
+        PATH_TRAIN.joinpath(f"checkpoints/weights-{ARCHITECTURE}.keras"),
+        PATH_TRAIN.joinpath("split-train-val-test.json")
+    input:
+        list(PATH_FCGR.rglob("*/*.npy"))
+    log:
+        Path(PATH_TRAIN).joinpath("logs/train.log")
+    conda:
+        "../envs/panspace.yaml"
+    resources:
+        nvidia_gpu=1
+    params:
+        datadir=PATH_FCGR,
+        outdir=PATH_TRAIN,
+        autoencoder=config["train"]["architecture"],
+        latent_dim=config["train"]["latent_dim"],
+        kmer=config["kmer_size"],
+        epochs=config["train"]["epochs"],
+        batch_size=config["train"]["batch_size"],
+        optimizer=config["train"]["optimizer"],
+        patiente_early_stopping=config["train"]["patiente_early_stopping"],
+        patiente_learning_rate=config["train"]["patiente_learning_rate"],
+        train_size=config["train"]["train_size"],
+        seed=config["train"]["seed"],
+    shell:
+        """/usr/bin/time -v panspace trainer train-autoencoder \
+        --datadir {params.datadir} \
+        --outdir {params.outdir} \
+        --autoencoder {params.autoencoder} \
+        --latent-dim {params.latent_dim} \
+        --kmer {params.kmer} \
+        --epochs {params.epochs} \
+        --batch-size {params.batch_size} \
+        --optimizer {params.optimizer} \
+        --patiente-early-stopping {params.patiente_early_stopping} \
+        --patiente-learning-rate {params.patiente_learning_rate} \
+        --train-size {params.train_size} \
+        --seed {params.seed} 2> {log}
+        """
 
 rule encoder_decoder:
     output:
