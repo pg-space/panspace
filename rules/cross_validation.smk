@@ -16,7 +16,7 @@ configfile: "params.yaml"
 from pathlib import Path
 
 KMER = config["kmer_size"]
-OUTDIR=Path(config["outdir"])#.joinpath("cross-validation") #FIXME:
+OUTDIR=Path(config["outdir"])
 PATH_FCGR = Path(OUTDIR).joinpath(f"{KMER}mer/fcgr")
 NAME_EXPERIMENT=config["train"]["name_experiment"]
 PATH_TRAIN=Path(OUTDIR).joinpath(f"{KMER}mer/{NAME_EXPERIMENT}/cross-validation")
@@ -24,6 +24,7 @@ ARCHITECTURE = config["train"]["architecture"]
 LATENT_DIM = config["train"]["latent_dim"]
 KFOLD = config["train"]["kfold"]
 KFOLDS = [x+1 for x in range(KFOLD)]
+LABELS = config["labels"]
 
 rule all:
     input:
@@ -41,11 +42,14 @@ rule kfold_split:
     params: 
         datadir=PATH_FCGR, 
         outdir=PATH_TRAIN,
-        kfold=KFOLD
+        kfold=KFOLD,
+        labels=LABELS
+    log:
+        Path(PATH_TRAIN).joinpath("logs/kfold_split.log")
     conda: 
         "../envs/panspace.yaml"
     shell:
-        "panspace trainer split-data --datadir {params.datadir} --outdir {params.outdir} --kfold {params.kfold}"
+        "/usr/bin/time -v panspace trainer split-data --datadir {params.datadir} --outdir {params.outdir} --kfold {params.kfold} --labels {params.labels} 2> {log}"
 
 rule train:
     output:
@@ -53,13 +57,12 @@ rule train:
     input:
         Path(PATH_TRAIN).joinpath("train_{kfold}-fold.txt"),
     log:
-        Path(PATH_TRAIN).joinpath("logs/train_{kfold}.log")
+        Path(PATH_TRAIN).joinpath("logs/train_{kfold}-fold.log")
     conda:
         "../envs/panspace.yaml"
     resources:
         nvidia_gpu=1
     params:
-        # training_list=PATH_FCGR,
         outdir=lambda wildcards: PATH_TRAIN.joinpath(f"{wildcards.kfold}-fold"),
         autoencoder=config["train"]["architecture"],
         latent_dim=config["train"]["latent_dim"],
@@ -87,9 +90,20 @@ rule train:
         --seed {params.seed} 2> {log}
         """
 
-
-# rule encoder_decoder:
-#     pass
+rule extract_encoder:
+    output:
+        Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        # Path(PATH_TRAIN).joinpath(f"models/decoder.keras")
+    input:
+        PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
+    params:
+        dir_save=Path(PATH_TRAIN).joinpath("{kfold}-fold/models")
+    log:
+        Path(PATH_TRAIN).joinpath("logs/extract_encoder_{kfold}-fold.log")
+    conda: 
+        "../envs/panspace.yaml"
+    shell:
+        "/usr/bin/time -v panspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} --encoder-only 2> {log}"
 
 # rule create_index:
 #     pass

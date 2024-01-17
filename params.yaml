@@ -5,7 +5,7 @@ kmer_size: 6
 # containing tuples of (k-mer, count). The second one is the FCGR matrix in
 # stored in a .npy file that is used to train models.  
 outdir: /data/bacteria/experiments/autoencoders-test
-
+labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
 ##### create_fcgr.smk ######
 fcgr:
   dir_tarfiles: "/data/bacteria/dataset"

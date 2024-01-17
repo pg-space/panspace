@@ -44,7 +44,7 @@ app.add_typer(app_trainer, name="trainer")
 
 @app.command("docs", help="Open documentation webpage.")
 def github() -> None:
-    typer.launch("https://github.com/jorgeavilacartes/embedding-bacteria")
+    typer.launch("https://github.com/jorgeavilacartes/panspace")
 
 @app.command("what-to-do", help=":cat: If you are new here, check this step-by-step guide")
 def what_to_do() -> None:

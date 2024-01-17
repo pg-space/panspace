@@ -110,7 +110,7 @@ def train(
         list_paths = []
         with open(training_list, "r") as fp:
             for line in fp.readlines():
-                path = line.replace("\n","").strip()
+                path = line.replace("\n","").strip().split("\t")[0] # first column of the input file 
                 if path.endswith(".npy"): 
                     list_paths.append(path)
 
@@ -255,9 +255,11 @@ def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-coun
     np.save(path_save, m)
 
 @app.command("split-data", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
-def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to .npy file to store FCGR.")],
+def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
                outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
-               kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = None):
+               kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = None,
+               path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the sample_id (eg. path/to/<sample_id>.fa) and second column is the label")] = None
+               ):
     
     from pathlib import Path
     from .dnn.utils.split_data import TrainValTestSplit
@@ -267,6 +269,17 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
 
     outdir=Path(outdir)
     outdir.mkdir(exist_ok=True, parents=True)
+
+    # load labels
+    if path_labels: 
+        labels_by_sampleid = dict()
+        with open(path_labels, "r") as fp:
+            for line in fp.readlines():
+                try:
+                    sample_id, label = line.replace("\n","").strip().split("\t")
+                    labels_by_sampleid[sample_id] = label                
+                except:
+                    continue #to avoid failing when lines are empty
 
     if kfold:
         split_cv = CrossValidationSplit(kfolds=kfold)
@@ -290,10 +303,20 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
             print(path_train)
             with open(path_train, "w") as fp:
                 for path in list_train:
-                    fp.write(f"{path}\n")
+                    if path_labels:
+                        sample_id = Path(path).stem
+                        label = labels_by_sampleid[sample_id]
+                        fp.write(f"{path}\t{label}\n")
+                    else:
+                        fp.write(f"{path}\n")
 
             path_test=outdir.joinpath(f"test_{id_partition+1}-fold.txt")
             print(path_test)
             with open(path_test, "w") as fp:
                 for path in list_test:
-                    fp.write(f"{path}\n")
+                    if path_labels:
+                        sample_id = Path(path).stem
+                        label = labels_by_sampleid[sample_id]
+                        fp.write(f"{path}\t{label}\n") 
+                    else:
+                        fp.write(f"{path}\n")
