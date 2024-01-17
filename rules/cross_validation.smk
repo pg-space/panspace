@@ -30,8 +30,9 @@ rule all:
     input:
         expand( PATH_TRAIN.joinpath("train_{kfold}-fold.txt") , kfold=KFOLDS),
         expand( PATH_TRAIN.joinpath("test_{kfold}-fold.txt") , kfold=KFOLDS),
-        expand( PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"), kfold=KFOLDS)
-
+        expand( PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"), kfold=KFOLDS),
+        expand( Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"), kfold=KFOLDS),
+        expand( Path(PATH_TRAIN).joinpath("{kfold}-fold/test/query_results.csv"), kfold=KFOLDS)
 
 rule kfold_split:
     output:
@@ -97,7 +98,7 @@ rule extract_encoder:
     input:
         PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
     params:
-        dir_save=Path(PATH_TRAIN).joinpath("{kfold}-fold/models")
+        dir_save=lambda wildcards: Path(PATH_TRAIN).joinpath(f"{wildcards.kfold}-fold/models")
     log:
         Path(PATH_TRAIN).joinpath("logs/extract_encoder_{kfold}-fold.log")
     conda: 
@@ -105,32 +106,56 @@ rule extract_encoder:
     shell:
         "/usr/bin/time -v panspace trainer split-autoencoder --path-checkpoint {input} --dirsave {params.dir_save} --encoder-only 2> {log}"
 
-# rule create_index:
-#     pass
+rule create_index:
+    output:
+        index=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"),
+        embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/embeddings.npy"),
+        id_embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/id_embeddings.json"),
+    input:
+        encoder=Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        files_to_index=Path(PATH_TRAIN).joinpath("train_{kfold}-fold.txt"),
+    params:
+        latent_dim=LATENT_DIM
+    resources:
+        nvidia_gpu=1
+    log:
+        Path(PATH_TRAIN).joinpath("logs/create_index_{kfold}-fold.log")
+    conda: 
+        "../envs/panspace.yaml"
+    shell:
+        """/usr/bin/time -v panspace index create \
+        --files-to-index {input.files_to_index} \
+        --col-labels 1 \
+        --path-encoder {input.encoder} \
+        --path-index {output.index}\
+        --latent-dim {params.latent_dim} 2> {log}"""
+
+rule test_index:
+    output:
+        embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/test/embeddings.npy"),
+        query=Path(PATH_TRAIN).joinpath("{kfold}-fold/test/query_results.csv"),
+    input:
+        path_index=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"),
+        path_encoder=Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        files_to_query=Path(PATH_TRAIN).joinpath("test_{kfold}-fold.txt")
+    params:
+        outdir=lambda wildcards: Path(PATH_TRAIN).joinpath(f"{wildcards.kfold}-fold/test")
+    resources:
+        nvidia_gpu=1
+    log:
+        Path(PATH_TRAIN).joinpath("logs/test_index_{kfold}-fold.log")
+    conda: 
+        "../envs/panspace.yaml"
+    shell:        
+        """
+        /usr/bin/time -v panspace index query \
+        --path-fcgr {input.files_to_query} \
+        --path-encoder {input.path_encoder} \
+        --path-index {input.path_index} \
+        --outdir {params.outdir} 2> {log}
+        """
+
+# TODO: outlier detection rule
 
 
-# rule test_index:
-#     output:
-#         embeddings=Path(PATH_TRAIN).joinpath("test/embeddings.npy"),
-#         query=Path(PATH_TRAIN).joinpath("test/query_results.csv"),
-#     input:
-#         path_index=Path(PATH_TRAIN).joinpath("faiss-embeddings/panspace.index"),
-#         path_encoder=Path(PATH_TRAIN).joinpath(f"models/encoder.keras"),
-#         files_to_query=Path(PATH_TRAIN).joinpath("files_to_query.txt")
-#     params:
-#         path_index=Path(PATH_TRAIN).joinpath("faiss-embeddings/panspace.index"),
-#         outdir=Path(PATH_TRAIN).joinpath("test")
-#     resources:
-#         nvidia_gpu=1
-#     log:
-#         Path(PATH_TRAIN).joinpath("logs/test_index.log")
-#     conda: 
-#         "../envs/panspace.yaml"
-#     shell:        
-#         """
-#         /usr/bin/time -v panspace index query \
-#         --path-fcgr {input.files_to_query} \
-#         --path-encoder {input.path_encoder} \
-#         --path-index {input.path_index} \
-#         --outdir {params.outdir} 2> {log}
-#         """
+# TODO: mislabeled detection rule
