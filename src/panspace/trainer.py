@@ -14,7 +14,7 @@ from rich import print
 from rich.console import Console
 
 # for typer
-from .utils import Autoencoder, Optimizer
+from .utils import Autoencoder, Optimizer, Loss, Activation, Preprocessing
 
 console=Console()
 app = typer.Typer(rich_markup_mode="rich",
@@ -25,11 +25,16 @@ def train(
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
         datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored. If None, training_list will be used")] = None,
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR to be used for training the autoencoder. If None, datadir will be used")] = None,
-        autoencoder: Annotated[Autoencoder, typer.Option(help="name of autoencoder to use for training")] = Autoencoder.CNNAutoencoderCAEBN.value,
+        autoencoder: Annotated[Autoencoder, typer.Option(help="name of autoencoder to use for training")] = Autoencoder.AutoencoderFCGR.value,
         latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 100, 
         kmer: Annotated[int, typer.Option(min=1)] = 6,
+        hidden_activation: Annotated[Activation,typer.Option(help="activation function for hidden layers")]=Activation.Relu.value,
+        output_activation: Annotated[Activation,typer.Option(help="activation function output layer")]=Activation.Softmax.value,
+        batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.Distribution.value,
         epochs: Annotated[int, typer.Option(min=1)] = 50,
-        batch_size: Annotated[int, typer.Option(min=1)] = 16,
+        batch_size: Annotated[int, typer.Option(min=1)] = 64,
+        loss: Annotated[Loss, typer.Option(help="loss function (keras option with default params)")] = Loss.CategoricalCrossEntropy.value,
         optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
         patiente_early_stopping: Annotated[int, typer.Option()] = 20,
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
@@ -49,6 +54,7 @@ def train(
         CNNAutoencoderCAEBN,
         CNNAutoencoderCAEBNLeakyRelu,
         CNNAutoencoderCAEBNL2Emb,
+        AutoencoderFCGR
         )
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.utils.split_data import TrainValTestSplit
@@ -72,7 +78,12 @@ def train(
     PATH_TRAIN.mkdir(exist_ok=True, parents=True)
 
     # preprocessing of each FCGR to feed the model 
-    preprocessing = lambda x: x / x.max() 
+    if preprocessing == "distribution":
+        # sum = 1
+        preprocessing = lambda x: x / x.sum().sum()    
+    else: 
+        # scale [0,1]
+        preprocessing = lambda x: x / x.max() 
 
     # ------ data split ------
     if datadir is not None:
@@ -180,10 +191,15 @@ def train(
         separator='\t',
         append=False
     )
-
+    # print(autoencoder.model.summary())
     # Load and train model
-    autoencoder=eval(f"{ARCHITECTURE}(LATENT_DIM)")
-    autoencoder.compile(optimizer=optimizer.value, loss="binary_crossentropy")
+    autoencoder=eval(f"""{ARCHITECTURE}(latent_dim = {LATENT_DIM}, 
+                output_activation='{output_activation}', 
+                hidden_activation='{hidden_activation}', 
+                kmer={kmer}, 
+                batch_normalization={batch_normalization},
+                )""")
+    autoencoder.compile(optimizer=optimizer.value, loss=loss.value)
     autoencoder.fit(
         ds_train, 
         validation_data=ds_val, 
@@ -279,8 +295,9 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                     sample_id, label = line.replace("\n","").strip().split("\t")
                     labels_by_sampleid[sample_id] = label                
                 except:
-                    continue #to avoid failing when lines are empty
-
+                    continue #to avoid failing when lines are empty or no valid info
+        # del labels_by_sampleid
+        
     if kfold:
         split_cv = CrossValidationSplit(kfolds=kfold)
         paths_by_partition = split_cv(list_paths)
@@ -305,7 +322,7 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                 for path in list_train:
                     if path_labels:
                         sample_id = Path(path).stem
-                        label = labels_by_sampleid[sample_id]
+                        label = labels_by_sampleid.get(sample_id, "unknown")
                         fp.write(f"{path}\t{label}\n")
                     else:
                         fp.write(f"{path}\n")
@@ -316,7 +333,9 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                 for path in list_test:
                     if path_labels:
                         sample_id = Path(path).stem
-                        label = labels_by_sampleid[sample_id]
+                        label = labels_by_sampleid.get(sample_id, "unknown")
                         fp.write(f"{path}\t{label}\n") 
                     else:
                         fp.write(f"{path}\n")
+
+    print("finished")

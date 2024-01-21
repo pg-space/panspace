@@ -1,11 +1,16 @@
 ##### Global ####
 kmer_size: 6
-# Inside this folder will be created the "{kmer_size}mer/kmer-count/" 
-# and "{kmer_size}mer/fcgr/" directories. The first one with .txt files
-# containing tuples of (k-mer, count). The second one is the FCGR matrix in
-# stored in a .npy file that is used to train models.  
-outdir: /data/bacteria/experiments/autoencoders-test
+
+# Inside the <outdir> folder will be created the "{kmer_size}mer/kmer-count/" 
+# and "{kmer_size}mer/fcgr/" directories. 
+# The first one with .txt files containing tuples of (k-mer, count)
+# The second one is the FCGR matrix in stored in a .npy file that is used to train models
+# NOTE: the .txt files are removed after the .npy file is created, since the same info is stored in the FCGR (and in less disk space). 
+# If they are needed, remove temp() in 'rule count_kmers' in rules/create_fcgr.smk 
+
+outdir: /data/bacteria/experiments/autoencoders
 labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
+
 ##### create_fcgr.smk ######
 fcgr:
   dir_tarfiles: "/data/bacteria/dataset"
@@ -18,22 +23,34 @@ kmc:
   min_threshold: 1
   max_threshold: 1000000
 
-
 ##### create_index.smk ######  
 train:
-  name_experiment: 17012024-1 #<ddmmaaaa-n>
+  name_experiment: 01_21_2024-4 #<mm_dd_aaaa-nexperiment>
   latent_dim: 100
-  epochs: 3  
-  batch_size: 16
-  architecture: 'CNNAutoencoderCAEBN'
-  patiente_early_stopping: 20
-  patiente_learning_rate: 10
+  epochs: 15  
+  batch_size: 128
+  architecture: 'AutoencoderFCGR'
+  patiente_early_stopping: 5
+  patiente_learning_rate: 2
   train_size: 0.8
   optimizer: adam
+  # choose combinations of loss and activation functions
+  # (loss, output_activation, hidden_activation) triplets will be run as zip() (not all combinations)
+  loss: # categorical_crossentropy binary_crossentropy mean_squared_error 
+    - mean_squared_error 
+    - binary_crossentropy
+  output_activation: # sigmoid relu softmax  
+    - relu 
+    - sigmoid
+  hidden_activation: # sigmoid relu softmax 
+    - relu 
+    - relu
+  preprocessing: scale_zero_one # distribution scale_zero_one 
   seed: 42
   kfold: 5
-
+  
 ##### query_index.smk ######
+# be sure that 'name_experiment' contains the index and encoder
 query:
   dir_fasta: "/data/bacteria/test-query" # all fasta files inside the folder will be used to query the index
   outdir: "output-query"

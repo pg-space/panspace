@@ -9,6 +9,7 @@ class Autoencoder(str, Enum):
     CNNAutoencoderCAEBN="CNNAutoencoderCAEBN"
     CNNAutoencoderCAEBNLeakyRelu="CNNAutoencoderCAEBNLeakyRelu"
     CNNAutoencoderCAEBNL2Emb="CNNAutoencoderCAEBNL2Emb"
+    AutoencoderFCGR="AutoencoderFCGR"
 
 class Optimizer(str, Enum):
     Adam="adam"
@@ -20,3 +21,18 @@ class Optimizer(str, Enum):
     Adamax="adamax"
     Adafactor="adafactor"
     Nadam="nadam"
+
+class Loss(str, Enum):
+    BinaryCrossEntropy="binary_crossentropy"
+    MSE="mean_squared_error"
+    CategoricalCrossEntropy="categorical_crossentropy"
+
+class Activation(str,Enum):
+    Sigmoid="sigmoid"
+    Softmax="softmax"
+    Relu="relu"
+    LeakyRelu="leakyrealu"
+
+class Preprocessing(str,Enum):
+    Distribution="distribution"
+    ScaleZeroOne="scale_zero_one"

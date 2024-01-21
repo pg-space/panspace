@@ -12,8 +12,10 @@ For each k-fold, train and test sets (list of paths) are created,
 # wildcards: kfold
 
 configfile: "params.yaml"
-
+import json
 from pathlib import Path
+import datetime
+import copy
 
 KMER = config["kmer_size"]
 OUTDIR=Path(config["outdir"])
@@ -26,13 +28,44 @@ KFOLD = config["train"]["kfold"]
 KFOLDS = [x+1 for x in range(KFOLD)]
 LABELS = config["labels"]
 
+LOSS = config["train"]["loss"]
+HIDDEN_ACTIVATION = config["train"]["hidden_activation"]
+OUTPUT_ACTIVATION = config["train"]["output_activation"]
+
+# save params used to run these pipeline
+
+_params = config["train"]
+# _params["datetime"] =  datetime.datetime.now()
+_params["kmer_size"] = KMER
+
+path_save_params = Path(PATH_TRAIN).joinpath("params.yaml")
+path_save_params.parent.mkdir(exist_ok=True, parents=True)
+with open(path_save_params, "w") as fp: 
+    json.dump(_params, fp, indent=1)
+
+
+# TODO: add wildcards: loss  hidden_activation  output_activation
+
+def get_outputs(wildcards):
+
+    outputs = []
+    for kfold in KFOLDS: 
+
+        outputs.extend(
+            Path(PATH_TRAIN).joinpath(f"{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv")
+            for loss, hidden_activation, output_activation in zip(LOSS, HIDDEN_ACTIVATION, OUTPUT_ACTIVATION)
+        )
+
+    return outputs
+
 rule all:
     input:
-        expand( PATH_TRAIN.joinpath("train_{kfold}-fold.txt") , kfold=KFOLDS),
-        expand( PATH_TRAIN.joinpath("test_{kfold}-fold.txt") , kfold=KFOLDS),
-        expand( PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"), kfold=KFOLDS),
-        expand( Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"), kfold=KFOLDS),
-        expand( Path(PATH_TRAIN).joinpath("{kfold}-fold/test/query_results.csv"), kfold=KFOLDS)
+        get_outputs
+        # expand( PATH_TRAIN.joinpath("train_{kfold}-fold.txt") , kfold=KFOLDS),
+        # expand( PATH_TRAIN.joinpath("test_{kfold}-fold.txt") , kfold=KFOLDS),
+        # expand( PATH_TRAIN.joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"), kfold=KFOLDS),
+        # expand( Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/panspace.index"), kfold=KFOLDS),
+        # expand( Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv"), kfold=KFOLDS)
 
 rule kfold_split:
     output:
@@ -54,17 +87,17 @@ rule kfold_split:
 
 rule train:
     output:
-        PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
+        PATH_TRAIN.joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
     input:
         Path(PATH_TRAIN).joinpath("train_{kfold}-fold.txt"),
     log:
-        Path(PATH_TRAIN).joinpath("logs/train_{kfold}-fold.log")
+        Path(PATH_TRAIN).joinpath("logs/train_{loss}-{hidden_activation}-{output_activation}-{kfold}-fold.log")
     conda:
         "../envs/panspace.yaml"
     resources:
         nvidia_gpu=1
     params:
-        outdir=lambda wildcards: PATH_TRAIN.joinpath(f"{wildcards.kfold}-fold"),
+        outdir=lambda w: PATH_TRAIN.joinpath(f"{w.loss}-{w.hidden_activation}-{w.output_activation}-{w.kfold}-fold"),
         autoencoder=config["train"]["architecture"],
         latent_dim=config["train"]["latent_dim"],
         kmer=config["kmer_size"],
@@ -75,6 +108,10 @@ rule train:
         patiente_learning_rate=config["train"]["patiente_learning_rate"],
         train_size=config["train"]["train_size"],
         seed=config["train"]["seed"],
+        loss=lambda wildcards: wildcards.loss,#config["train"]["loss"],
+        hidden_activation=lambda wildcards: wildcards.hidden_activation, #config["train"]["hidden_activation"],
+        output_activation=lambda wildcards: wildcards.output_activation,#config["train"]["output_activation"],
+        preprocessing=config["train"]["preprocessing"]
     shell:
         """/usr/bin/time -v panspace trainer train-autoencoder \
         --training-list {input} \
@@ -82,25 +119,30 @@ rule train:
         --autoencoder {params.autoencoder} \
         --latent-dim {params.latent_dim} \
         --kmer {params.kmer} \
+        --preprocessing {params.preprocessing} \
         --epochs {params.epochs} \
         --batch-size {params.batch_size} \
+        --batch-normalization \
         --optimizer {params.optimizer} \
         --patiente-early-stopping {params.patiente_early_stopping} \
         --patiente-learning-rate {params.patiente_learning_rate} \
+        --hidden-activation {params.hidden_activation} \
+        --output-activation {params.output_activation} \
         --train-size {params.train_size} \
+        --loss {params.loss} \
         --seed {params.seed} 2> {log}
         """
 
 rule extract_encoder:
     output:
-        Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/models/encoder.keras"),
         # Path(PATH_TRAIN).joinpath(f"models/decoder.keras")
     input:
-        PATH_TRAIN.joinpath("{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
+        PATH_TRAIN.joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
     params:
-        dir_save=lambda wildcards: Path(PATH_TRAIN).joinpath(f"{wildcards.kfold}-fold/models")
+        dir_save=lambda w: Path(PATH_TRAIN).joinpath(f"{w.loss}-{w.hidden_activation}-{w.output_activation}-{w.kfold}-fold/models")
     log:
-        Path(PATH_TRAIN).joinpath("logs/extract_encoder_{kfold}-fold.log")
+        Path(PATH_TRAIN).joinpath("logs/extract_encoder_{loss}-{hidden_activation}-{output_activation}-{kfold}-fold.log")
     conda: 
         "../envs/panspace.yaml"
     shell:
@@ -108,18 +150,18 @@ rule extract_encoder:
 
 rule create_index:
     output:
-        index=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"),
-        embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/embeddings.npy"),
-        id_embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/id_embeddings.json"),
+        index=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/panspace.index"),
+        embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/embeddings.npy"),
+        id_embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/id_embeddings.json"),
     input:
-        encoder=Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        encoder=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/models/encoder.keras"),
         files_to_index=Path(PATH_TRAIN).joinpath("train_{kfold}-fold.txt"),
     params:
         latent_dim=LATENT_DIM
     resources:
         nvidia_gpu=1
     log:
-        Path(PATH_TRAIN).joinpath("logs/create_index_{kfold}-fold.log")
+        Path(PATH_TRAIN).joinpath("logs/create_index_{loss}-{hidden_activation}-{output_activation}-{kfold}-fold.log")
     conda: 
         "../envs/panspace.yaml"
     shell:
@@ -132,18 +174,18 @@ rule create_index:
 
 rule test_index:
     output:
-        embeddings=Path(PATH_TRAIN).joinpath("{kfold}-fold/test/embeddings.npy"),
-        query=Path(PATH_TRAIN).joinpath("{kfold}-fold/test/query_results.csv"),
+        embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/embeddings.npy"),
+        query=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv"),
     input:
-        path_index=Path(PATH_TRAIN).joinpath("{kfold}-fold/faiss-embeddings/panspace.index"),
-        path_encoder=Path(PATH_TRAIN).joinpath("{kfold}-fold/models/encoder.keras"),
+        path_index=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/panspace.index"),
+        path_encoder=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/models/encoder.keras"),
         files_to_query=Path(PATH_TRAIN).joinpath("test_{kfold}-fold.txt")
     params:
-        outdir=lambda wildcards: Path(PATH_TRAIN).joinpath(f"{wildcards.kfold}-fold/test")
+        outdir=lambda w: Path(PATH_TRAIN).joinpath(f"{w.loss}-{w.hidden_activation}-{w.output_activation}-{w.kfold}-fold/test")
     resources:
         nvidia_gpu=1
     log:
-        Path(PATH_TRAIN).joinpath("logs/test_index_{kfold}-fold.log")
+        Path(PATH_TRAIN).joinpath("logs/test_index_{loss}-{hidden_activation}-{output_activation}-{kfold}-fold.log")
     conda: 
         "../envs/panspace.yaml"
     shell:        
@@ -154,6 +196,30 @@ rule test_index:
         --path-index {input.path_index} \
         --outdir {params.outdir} 2> {log}
         """
+
+# rule add_ground_truth:
+#     output:
+#         query=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query.csv"),
+#     input:
+#         query=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv"),
+#     # conda: 
+#     #     "../envs/panspace.yaml"
+#     log: 
+#         Path(PATH_TRAIN).joinpath("logs/add_ground_truth-{loss}-{hidden_activation}-{output_activation}-{kfold}.log")
+#     run:
+#         import pandas as pd 
+
+#         labels_by_sampleid = dict()
+#         with open(LABELS, "r") as fp:
+#             for line in fp.readlines():
+#                 try:
+#                     sample_id, label = line.replace("\n","").strip().split("\t")
+#                     labels_by_sampleid[sample_id] = label                
+#                 except:
+#                     continue
+#         df = pd.read_csv(input[0])
+#         df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: "_".join([labels_by_sampleid[sample_id].split(" ")]))
+#         df.to_csv(output[0],sep="\t")
 
 # TODO: outlier detection rule
 

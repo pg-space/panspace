@@ -106,6 +106,7 @@ def query_index(
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
+        col_labels: Annotated[int, typer.Option("--column-labels","-cl", help="column with albels in <path_fcgr>.txt")] = None,
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
         ) -> None:
@@ -135,11 +136,15 @@ def query_index(
         list_paths = list(Path(PATH_FCGR).rglob("*.npy"))
     else: 
         list_paths = []
+        labels_by_sampleid = dict()
         with open(PATH_FCGR, "r") as fp:
             for line in fp.readlines():
                 info = line.replace("\n","").split("\t")
                 path = info[0]
+                sampleid = Path(path).stem
+                label = info[col_labels] if col_labels else "unknwon"
                 list_paths.append(Path(path))
+                labels_by_sampleid[sampleid] = label
                 # index_labels.append(label)
 
     # 0. load index
@@ -176,12 +181,14 @@ def query_index(
     # (...) return labels
     console.print(":dna: Loading index metadata...")
     from collections import namedtuple
+
+    #TODO use correct labels from txt file 
     Metadata=namedtuple("Metadata",["sample_id","label"])
     with open(PATH_INDEX.parent.joinpath("id_embeddings.json"),"r") as fp:
         index2metadata = {int(idx): 
                         Metadata(
                             Path(path).stem, 
-                            Path(path).parent.stem.split("__")[0]
+                            labels_by_sampleid[Path(path).stem]
                             ) 
                             for idx, path in json.load(fp).items()}
 
@@ -193,14 +200,20 @@ def query_index(
     get_sample_id = np.vectorize(get_sample_id_)
 
     # query the index
-    console.print(":dna: Querying index...")
+    console.print(":dna: Querying FAISS index...")
     D,I = index.search(query_emb, neighbors)
+    console.print(":dna: Query done...")
+    
+    console.print(":dna: Querying labels...")
     neighbors_labels= get_label(I)
     neighbors_sample_ids = get_sample_id(I)
-
+    
+    console.print(":dna: Creating CSV output...")
     df = pd.DataFrame([{"sample_id_query": path.stem,} for path in list_paths])
 
-    for n in range(neighbors):
+    console.print(":dna: Adding label and distances for each neighbor query in CSV output...")
+    range_n = list(range(neighbors))
+    for n in track(range_n, description=f"Adding label and distances for each neighbor query in CSV output | total neighbors = {neighbors}", total=neighbors):
         df[f"sample_id_{n}"] = neighbors_sample_ids[:,n]
         df[f"label_{n}"] = neighbors_labels[:,n]
         df[f"distance_to_{n}"] = D[:,n]
