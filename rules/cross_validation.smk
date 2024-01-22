@@ -152,7 +152,7 @@ rule create_index:
     output:
         index=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/panspace.index"),
         embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/embeddings.npy"),
-        id_embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/id_embeddings.json"),
+        id_embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/labels.json"),
     input:
         encoder=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/models/encoder.keras"),
         files_to_index=Path(PATH_TRAIN).joinpath("train_{kfold}-fold.txt"),
@@ -194,6 +194,7 @@ rule test_index:
         --path-fcgr {input.files_to_query} \
         --path-encoder {input.path_encoder} \
         --path-index {input.path_index} \
+        --col-labels 1 \
         --outdir {params.outdir} 2> {log}
         """
 

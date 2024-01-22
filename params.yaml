@@ -25,10 +25,10 @@ kmc:
 
 ##### create_index.smk ######  
 train:
-  name_experiment: 01_21_2024-4 #<mm_dd_aaaa-nexperiment>
+  name_experiment: 01_22_2024-1 #<mm_dd_aaaa-nexperiment>
   latent_dim: 100
   epochs: 15  
-  batch_size: 128
+  batch_size: 256 # best trade off 
   architecture: 'AutoencoderFCGR'
   patiente_early_stopping: 5
   patiente_learning_rate: 2
@@ -38,13 +38,13 @@ train:
   # (loss, output_activation, hidden_activation) triplets will be run as zip() (not all combinations)
   loss: # categorical_crossentropy binary_crossentropy mean_squared_error 
     - mean_squared_error 
-    - binary_crossentropy
+    # - binary_crossentropy
   output_activation: # sigmoid relu softmax  
     - relu 
-    - sigmoid
+    # - sigmoid
   hidden_activation: # sigmoid relu softmax 
     - relu 
-    - relu
+    # - relu
   preprocessing: scale_zero_one # distribution scale_zero_one 
   seed: 42
   kfold: 5

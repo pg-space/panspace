@@ -292,8 +292,11 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
         with open(path_labels, "r") as fp:
             for line in fp.readlines():
                 try:
+                    # TODO: any better way to standarize the label? could change for other experiments
                     sample_id, label = line.replace("\n","").strip().split("\t")
-                    labels_by_sampleid[sample_id] = label                
+                    sample_id = sample_id.strip()
+                    label = "_".join(label.lower().strip().split(" "))
+                    labels_by_sampleid[sample_id] = label
                 except:
                     continue #to avoid failing when lines are empty or no valid info
         # del labels_by_sampleid

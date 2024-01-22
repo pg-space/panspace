@@ -85,6 +85,9 @@ def create_index(
     np.save(file=path_emb.joinpath("embeddings.npy"), arr=all_emb)
     with open(path_emb.joinpath("id_embeddings.json"), "w") as fp:
         json.dump({j: str(p) for j,p in enumerate(index_paths)}, fp, indent=4)
+    
+    with open(path_emb.joinpath("labels.json"), "w") as fp:
+        json.dump({j: str(p) for j,p in enumerate(index_labels)}, fp, indent=4)
 
     # 4. create faiss index
     # build the index
@@ -106,7 +109,7 @@ def query_index(
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
-        col_labels: Annotated[int, typer.Option("--column-labels","-cl", help="column with albels in <path_fcgr>.txt")] = None,
+        col_labels: Annotated[int, typer.Option("--col-labels","-l", help="column with labels (ground_truth) in <path_fcgr>.txt")] = 1,
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
         ) -> None:
@@ -137,20 +140,40 @@ def query_index(
     else: 
         list_paths = []
         labels_by_sampleid = dict()
+        # query
         with open(PATH_FCGR, "r") as fp:
             for line in fp.readlines():
-                info = line.replace("\n","").split("\t")
+                info  = line.replace("\n","").split("\t")
                 path = info[0]
+                label = info[col_labels]
                 sampleid = Path(path).stem
-                label = info[col_labels] if col_labels else "unknwon"
+                label = "_".join(label.lower().strip().split(" ")) if col_labels>=1 else "unknown"
                 list_paths.append(Path(path))
                 labels_by_sampleid[sampleid] = label
                 # index_labels.append(label)
+        
+    # labels index
+    with open(PATH_INDEX.parent.joinpath("id_embeddings.json"), "r") as fp:
+        pos_to_path = json.load(fp)
+
+    with open(PATH_INDEX.parent.joinpath("labels.json"), "r") as fp:
+        pos_to_label = json.load(fp)
+
+
+    for pos, path in pos_to_path.items():       
+        sampleid=Path(path).stem
+        label = pos_to_label[pos]
+        labels_by_sampleid[sampleid] = label
+    
+    # "_".join(labels_by_sampleid[sample_id].split(" "))
 
     # 0. load index
     console.print(":dna: Loading Index...")
     index = faiss.read_index(str(PATH_INDEX))
     
+    print(PATH_INDEX)
+    print(PATH_INDEX.parent)
+    print(PATH_INDEX.parent.joinpath("id_embeddings.json"))
     # 1. load encoder
     console.print(":dna: Loading Encoder...")
     encoder =tf.keras.models.load_model(PATH_ENCODER)
@@ -184,12 +207,13 @@ def query_index(
 
     #TODO use correct labels from txt file 
     Metadata=namedtuple("Metadata",["sample_id","label"])
+    
     with open(PATH_INDEX.parent.joinpath("id_embeddings.json"),"r") as fp:
         index2metadata = {int(idx): 
                         Metadata(
                             Path(path).stem, 
-                            labels_by_sampleid[Path(path).stem]
-                            ) 
+                            labels_by_sampleid.get(Path(path).stem,"unknown")
+                            )   
                             for idx, path in json.load(fp).items()}
 
     # get labels from idx
@@ -217,6 +241,8 @@ def query_index(
         df[f"sample_id_{n}"] = neighbors_sample_ids[:,n]
         df[f"label_{n}"] = neighbors_labels[:,n]
         df[f"distance_to_{n}"] = D[:,n]
+
+    df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: labels_by_sampleid[sample_id]))
 
     # # Save results
     console.print(":dna: Saving results...")
