@@ -61,7 +61,7 @@ rule count_kmers:
     shell:
         """
         mkdir -p tmp-kmc
-        kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fa {input} {input} "tmp-kmc"
+        kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc"
         kmc_tools -t4 -v transform {input} dump {output} 
         rm -r {input} {input}.kmc_pre {input}.kmc_suf
         """

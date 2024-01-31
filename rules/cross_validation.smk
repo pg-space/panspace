@@ -27,6 +27,7 @@ LATENT_DIM = config["train"]["latent_dim"]
 KFOLD = config["train"]["kfold"]
 KFOLDS = [x+1 for x in range(KFOLD)]
 LABELS = config["labels"]
+PERCENTIL = config["outliers"]["percentil_avg_distance"] #0.99
 
 LOSS = config["train"]["loss"]
 HIDDEN_ACTIVATION = config["train"]["hidden_activation"]
@@ -52,10 +53,15 @@ def get_outputs(wildcards):
     for kfold in KFOLDS: 
 
         outputs.extend(
-            Path(PATH_TRAIN).joinpath(f"{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv")
+            Path(PATH_TRAIN).joinpath(f"{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/data-curation/outliers_avg_dist_percentile.csv")
+            # Path(PATH_TRAIN).joinpath(f"{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv")
+            for loss, hidden_activation, output_activation in zip(LOSS, HIDDEN_ACTIVATION, OUTPUT_ACTIVATION)
+        ),
+        outputs.extend(
+            Path(PATH_TRAIN).joinpath(f"{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/data-curation/percentile_threshold.json")
             for loss, hidden_activation, output_activation in zip(LOSS, HIDDEN_ACTIVATION, OUTPUT_ACTIVATION)
         )
-
+    
     return outputs
 
 rule all:
@@ -198,31 +204,40 @@ rule test_index:
         --outdir {params.outdir} 2> {log}
         """
 
-# rule add_ground_truth:
-#     output:
-#         query=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query.csv"),
-#     input:
-#         query=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/query_results.csv"),
-#     # conda: 
-#     #     "../envs/panspace.yaml"
-#     log: 
-#         Path(PATH_TRAIN).joinpath("logs/add_ground_truth-{loss}-{hidden_activation}-{output_activation}-{kfold}.log")
-#     run:
-#         import pandas as pd 
 
-#         labels_by_sampleid = dict()
-#         with open(LABELS, "r") as fp:
-#             for line in fp.readlines():
-#                 try:
-#                     sample_id, label = line.replace("\n","").strip().split("\t")
-#                     labels_by_sampleid[sample_id] = label                
-#                 except:
-#                     continue
-#         df = pd.read_csv(input[0])
-#         df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: "_".join([labels_by_sampleid[sample_id].split(" ")]))
-#         df.to_csv(output[0],sep="\t")
+# TODO: cross validation metrics
+# rule cross_validation_metrics:
+#     pass
 
 # TODO: outlier detection rule
-
-
+rule outlier_detection:
+    output:
+        path_outliers = Path(PATH_TRAIN).joinpath(f"{{loss}}-{{hidden_activation}}-{{output_activation}}-{{kfold}}-fold/data-curation/outliers_avg_dist_percentile.csv"),
+        path_threshold = Path(PATH_TRAIN).joinpath(f"{{loss}}-{{hidden_activation}}-{{output_activation}}-{{kfold}}-fold/data-curation/percentile_threshold.json"),
+    input:
+        path_index=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/panspace.index"),
+        train_embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/faiss-embeddings/embeddings.npy"),
+        test_embeddings=Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/test/embeddings.npy"),
+    params:
+        train_metadata=lambda w: Path(PATH_TRAIN).joinpath(f"train_{w.kfold}-fold.txt"),
+        test_metadata=lambda w: Path(PATH_TRAIN).joinpath(f"test_{w.kfold}-fold.txt"),
+        outdir=lambda w: Path(PATH_TRAIN).joinpath(f"{w.loss}-{w.hidden_activation}-{w.output_activation}-{w.kfold}-fold/data-curation"),
+        neighbors=10,
+        threshold=PERCENTIL,
+    conda: 
+        "../envs/panspace.yaml"
+    log:
+        log=Path(PATH_TRAIN).joinpath("logs/outlier_detection_{loss}-{hidden_activation}-{output_activation}-{kfold}-fold.log")
+    shell:
+        """
+        /usr/bin/time -v panspace data-curation find-outliers \
+        --path-index {input.path_index} \
+        --path-train-embeddings {input.train_embeddings} \
+        --path-train-metadata {params.train_metadata} \
+        --path-test-embeddings {input.test_embeddings}\
+        --path-test-metadata {params.test_metadata} \
+        --outdir {params.outdir} \
+        --neighbors {params.neighbors} \
+        --threshold {params.threshold} 2> {log} 
+        """    
 # TODO: mislabeled detection rule

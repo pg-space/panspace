@@ -3,19 +3,28 @@ This script query the index with fasta files in a folder
 The output is a numpy file with the embeddings and a CSV with the top-10 predictions and distances
 """
 
-configfile: "params.yaml"
+configfile: "panspace-query.yaml"
 from pathlib import Path
 from os.path import join as pjoin
 
-KMER_SIZE=config["kmer_size"]
-PATH_EXP=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer").joinpath(config["train"]["name_experiment"])
+KMER_SIZE=6#config["kmer_size"]
+# PATH_EXP=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer").joinpath(config["train"]["name_experiment"])#.joinpath("cross-validation/mean_squared_error-relu-relu-1-fold")
+PATH_EXP=Path(config["query"]["path_panspace"])
 OUTDIR = Path(config["query"]["outdir"])
 DIR_FASTA=Path(config["query"]["dir_fasta"])
+# DIR_FCGR=Path(config["query"]["dir_fcgr"])
 
-path_by_fasta  = {p.stem: str(p) for p in DIR_FASTA.rglob("*fa")} 
+# path_by_fcgr  = {p.stem: str(p) for p in DIR_FCGR.rglob("*npy")} 
+# pfcgr = path_by_fcgr.keys()
+# path_by_fasta  = {p.stem: str(p) for p in DIR_FASTA.rglob("*fa") }# if p.stem in pfcgr } 
+# TODO: extensions: fasta fa fna
+path_by_fasta  = {p.stem: str(p) for p in DIR_FASTA.rglob("*fna") } # if p.stem in pfcgr } 
+
 LIST_FASTA = list(path_by_fasta.keys())
 
-print(LIST_FASTA)
+# LIST_FCGR = list(path_by_fcgr.keys())
+# LIST_FASTA = LIST_FCGR
+# print(LIST_FASTA)
 
 rule all:
     input:
@@ -26,16 +35,22 @@ rule count_kmers:
     input:
         lambda wildcards: path_by_fasta[wildcards.fasta]
     output:
-        temp(pjoin(OUTDIR, "fcgr","{fasta}.kmer-count.txt"))
+        # temp(
+        pjoin(OUTDIR, "fcgr","{fasta}.kmer-count.txt")
+            # )
     params:
         kmer=KMER_SIZE,
     conda:
         "../envs/kmc.yaml"
+    log:
+        kmc=OUTDIR.joinpath("logs/count_kmers_kmc-{fasta}.log"),
+        dump=OUTDIR.joinpath("logs/count_kmers_dump-{fasta}.log"),
     shell:
+        # TODO: split rule and check check if the bottleneck is the dump step
         """
         mkdir -p tmp-kmc
-        kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fa {input} {input} "tmp-kmc"
-        kmc_tools -t4 -v transform {input} dump {output} 
+        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc" 2> {log.kmc}
+        /usr/bin/time -v kmc_tools -t4 -v transform {input} dump {output} 2> {log.dump}
         rm -r {input}.kmc_pre {input}.kmc_suf
         """
 
@@ -48,9 +63,11 @@ rule fcgr:
         kmer=KMER_SIZE
     conda: 
         "../envs/panspace.yaml"
+    log:
+        OUTDIR.joinpath("logs/fcgr-{fasta}.log")
     shell:
         """
-        panspace trainer fcgr -k {params.kmer} --path-kmer-counts {input} --path-save {output}
+        /usr/bin/time -v panspace trainer fcgr -k {params.kmer} --path-kmer-counts {input} --path-save {output} 2> {log}
         """
 
 rule query_index:

@@ -135,11 +135,12 @@ def query_index(
     OUTDIR=Path(outdir)
     OUTDIR.mkdir(exist_ok=True, parents=True)
 
+    labels_by_sampleid = dict()
     if Path(PATH_FCGR).is_dir():
         list_paths = list(Path(PATH_FCGR).rglob("*.npy"))
     else: 
         list_paths = []
-        labels_by_sampleid = dict()
+        
         # query
         with open(PATH_FCGR, "r") as fp:
             for line in fp.readlines():
@@ -154,10 +155,10 @@ def query_index(
         
     # labels index
     with open(PATH_INDEX.parent.joinpath("id_embeddings.json"), "r") as fp:
-        pos_to_path = json.load(fp)
+        pos_to_path = {int(idx): path for idx,path in json.load(fp).items()}
 
     with open(PATH_INDEX.parent.joinpath("labels.json"), "r") as fp:
-        pos_to_label = json.load(fp)
+        pos_to_label = {int(idx): label for idx,label in json.load(fp).items()}
 
 
     for pos, path in pos_to_path.items():       
@@ -177,6 +178,7 @@ def query_index(
     # 1. load encoder
     console.print(":dna: Loading Encoder...")
     encoder =tf.keras.models.load_model(PATH_ENCODER)
+    print(encoder.summary())
 
     # 3. create embeddings
     # preprocessing of each FCGR to feed the model 
@@ -217,8 +219,8 @@ def query_index(
                             for idx, path in json.load(fp).items()}
 
     # get labels from idx
-    get_label_ = lambda idx: index2metadata.get(idx).label
-    get_sample_id_ = lambda idx: index2metadata.get(idx).sample_id
+    get_label_ = lambda idx: index2metadata.get(idx).label if idx>=0 else "unanswer"
+    get_sample_id_ = lambda idx: index2metadata.get(idx).sample_id if idx>=0 else "unanswer"
     # vectorized version
     get_label = np.vectorize(get_label_)
     get_sample_id = np.vectorize(get_sample_id_)
@@ -226,6 +228,7 @@ def query_index(
     # query the index
     console.print(":dna: Querying FAISS index...")
     D,I = index.search(query_emb, neighbors)
+    print(I.min(),I.max())
     console.print(":dna: Query done...")
     
     console.print(":dna: Querying labels...")
@@ -242,7 +245,7 @@ def query_index(
         df[f"label_{n}"] = neighbors_labels[:,n]
         df[f"distance_to_{n}"] = D[:,n]
 
-    df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: labels_by_sampleid[sample_id]))
+    # df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: labels_by_sampleid[sample_id]))
 
     # # Save results
     console.print(":dna: Saving results...")

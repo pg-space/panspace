@@ -26,6 +26,7 @@ import typer
 # types for typer
 from panspace.trainer import app as app_trainer
 from panspace.index import app as app_index
+from panspace.data_curation import app as app_data_curation
 
 from rich.progress import track
 from rich import print 
@@ -41,6 +42,7 @@ app = typer.Typer(name="PanSpaceTool",rich_markup_mode="rich",
                         """)
 app.add_typer(app_index, name="index")
 app.add_typer(app_trainer, name="trainer")
+app.add_typer(app_data_curation, name="data-curation")
 
 @app.command("docs", help="Open documentation webpage.")
 def github() -> None:
@@ -51,6 +53,15 @@ def what_to_do() -> None:
     md = Markdown(MARKDOWN)
     console.print(
         md
+    )
+
+@app.command("utils", help="Extract info from text or log files")
+def info_from_logs(path_log) -> None:
+    # md = Markdown(MARKDOWN)
+    from .utils import LogInfo
+    loginfo = LogInfo()
+    console.print(
+        loginfo(path_log)
     )
 
 

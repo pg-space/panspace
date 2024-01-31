@@ -270,6 +270,26 @@ def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-coun
     Path(path_save).parent.mkdir(exist_ok=True, parents=True)
     np.save(path_save, m)
 
+@app.command("fcgr-fasta",help="Create the Frequency matrix of CGR (FCGR) from a fasta file.")
+def create_fcgr(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mode="r", help="path to .fa file with assembly.")],
+                path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
+                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
+
+    # from .fcgr.fcgr_from_kmc import FCGRKmc
+    from complexcgr import FCGR
+    import numpy as np
+    from pathlib import Path
+    from Bio import SeqIO
+
+    fcgr = FCGR(kmer)
+    with open(path_fasta,"r") as fp:
+        record = SeqIO.read(fp, format="fasta")
+    
+    m = fcgr(sequence=record.seq)
+
+    Path(path_save).parent.mkdir(exist_ok=True, parents=True)
+    np.save(path_save, m)
+
 @app.command("split-data", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
 def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
                outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
