@@ -109,11 +109,14 @@ def query_index(
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
+        reshape_fcgr: Annotated[bool, typer.Option("--reshape-fcgr", help="reshape a row input to square FCGR matrix. kmer size is required")]=True,
         col_labels: Annotated[int, typer.Option("--col-labels","-l", help="column with labels (ground_truth) in <path_fcgr>.txt")] = 1,
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
+        kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")] = 6,
         ) -> None:
-    
+        # batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
+    console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
     import json
     import tensorflow as tf
     import faiss
@@ -190,7 +193,9 @@ def query_index(
         batch_size=batch_size,
         shuffle=False,
         preprocessing=preprocessing,
-        inference_mode=True
+        inference_mode=True,
+        reshape=reshape_fcgr, #True if reshape_fcgr ==1 else False,
+        kmer_size=kmer_size,
     )
 
     # embeddings
@@ -244,8 +249,6 @@ def query_index(
         df[f"sample_id_{n}"] = neighbors_sample_ids[:,n]
         df[f"label_{n}"] = neighbors_labels[:,n]
         df[f"distance_to_{n}"] = D[:,n]
-
-    # df.insert(0, "ground_truth", df["sample_id_query"].apply(lambda sample_id: labels_by_sampleid[sample_id]))
 
     # # Save results
     console.print(":dna: Saving results...")

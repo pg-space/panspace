@@ -46,7 +46,7 @@ app.add_typer(app_data_curation, name="data-curation")
 
 @app.command("docs", help="Open documentation webpage.")
 def github() -> None:
-    typer.launch("https://github.com/jorgeavilacartes/panspace")
+    typer.launch("https://github.com/pg-space/panspace")
 
 @app.command("what-to-do", help=":cat: If you are new here, check this step-by-step guide")
 def what_to_do() -> None:
@@ -57,13 +57,11 @@ def what_to_do() -> None:
 
 @app.command("utils", help="Extract info from text or log files")
 def info_from_logs(path_log) -> None:
-    # md = Markdown(MARKDOWN)
     from .utils import LogInfo
     loginfo = LogInfo()
     console.print(
         loginfo(path_log)
     )
-
 
 if __name__ == "__main__":
     app()

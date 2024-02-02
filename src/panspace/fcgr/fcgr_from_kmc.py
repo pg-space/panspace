@@ -3,10 +3,12 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 from complexcgr import FCGR
+# from .fcgr_modified import FCGRmodified
 from itertools import product
 
 NUC_COMPLEMENT = {n:c for n,c in zip ("ACGT","TGCA")}
 
+# class FCGRKmc(FCGRmodified):
 class FCGRKmc(FCGR):
     """
     Create FCGR with the option of using canonical kmers from KMC output
@@ -16,6 +18,8 @@ class FCGRKmc(FCGR):
         self.k = k # k-mer representation
         self.use_canonical_kmers = use_canonical_kmers
         
+        # TODO: load precomputed kmer dictionary
+
         # change pixel position of non-canonical kmers
         if use_canonical_kmers is True:
             for kmer in self.kmers: 

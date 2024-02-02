@@ -257,7 +257,7 @@ def split_autoencoder(
             model.save(path_save_models.joinpath(f"{name_model}.keras"))
 
 @app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
-def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
+def create_fcgr_kmc(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
 
@@ -271,7 +271,7 @@ def create_fcgr(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-coun
     np.save(path_save, m)
 
 @app.command("fcgr-fasta",help="Create the Frequency matrix of CGR (FCGR) from a fasta file.")
-def create_fcgr(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mode="r", help="path to .fa file with assembly.")],
+def create_fcgr_fasta(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mode="r", help="path to .fa file with assembly.")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
 
@@ -294,7 +294,7 @@ def create_fcgr(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mo
 def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
                outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
                kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = None,
-               path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the sample_id (eg. path/to/<sample_id>.fa) and second column is the label")] = None
+               path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the sample_id (eg. path/to/<sample_id>.fa) and second column is the label (tab separated)")] = None
                ):
     
     from pathlib import Path

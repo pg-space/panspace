@@ -5,20 +5,30 @@ import numpy as np
 import tensorflow as tf
 
 class DataLoaderVAR(tf.keras.utils.Sequence):
-    """Data Loader for keras from a list of paths to files""" 
+    """Data Loader for keras from a list of paths to npy files containing the FCGR as numpy array
+    If the FCGR is flattened (by rows as the output of the FCGR in C implementation, 
+    then set reshape=True
+    """ 
 
     def __init__(self, 
                 list_paths: List[Union[str, Path]], 
                 batch_size: int = 8,
                 shuffle: bool = True,      
                 preprocessing: Optional[Callable] = None,
-                inference_mode: bool = False
+                inference_mode: bool = False,
+                reshape: bool = True,
+                kmer_size: int = 6,
                 ):
         self.list_paths = list_paths
         self.batch_size = batch_size 
         self.shuffle = shuffle
         self.preprocessing = preprocessing if callable(preprocessing) else lambda x: x
         self.inference_mode= inference_mode
+
+        self.reshape=reshape
+        self.kmer_size=kmer_size
+        self.shape_fcgr=(2**kmer_size, 2**kmer_size)
+
         # initialize first batch
         self.on_epoch_end()
 
@@ -63,6 +73,8 @@ class DataLoaderVAR(tf.keras.utils.Sequence):
         X_batch = []
         for path in list_path_temp: 
             npy = np.load(path)
+            if self.reshape is True:
+                npy=np.reshape(npy, self.shape_fcgr, order="C")
             npy = self.preprocessing(npy)
             npy = np.expand_dims(npy, axis=-1)# add channel dimension
             X_batch.append(np.expand_dims(npy,axis=0)) # add to list with batch dims
