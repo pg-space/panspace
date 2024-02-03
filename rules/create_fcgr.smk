@@ -17,40 +17,51 @@ TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
 # TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
 print(TARFILES)
 
-def aggregate_decompress_tarxz(wildcards,):
-    "Helper function to end checkpoint rule"
+def aggregate_numpy_kmer_count(wildcards,):
+    "Helper function to collect all FCGR .npy files generated for a set of assemblies of a tarfile"
     
-    output_tarfile = checkpoints.decompress_tarxz.get(**wildcards).output[0]
+    output_tarfile = checkpoints.fcgr.get(**wildcards).output[0]
     list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
     return expand( pjoin(OUTDIR, "fcgr",f"{wildcards.tarfile}","{fasta}.npy"), fasta=list_fasta)    
-    
+
+
 rule all:
     input:
-        expand( pjoin(OUTDIR,"{tarfile}_aggregate.flag"), tarfile=TARFILES)
+        expand( pjoin(OUTDIR, "{tarfile}_aggregate.flag"), tarfile=TARFILES)
 
+        # expand(pjoin(OUTDIR, "list_path_kmc_{tarfile}.txt"), tarfile=TARFILES)
+
+# outut fasta files in assembly/ directory
 checkpoint decompress_tarxz:
     input: 
         pjoin(DIR_TARFILES, "{tarfile}" + ".tar.xz")
     output:
-        directory(pjoin(OUTDIR, "kmer-count" ,"{tarfile}"))
+        directory(pjoin(OUTDIR, "assembly" ,"{tarfile}"))
+    log:
+        pjoin(OUTDIR, "logs", "decompress_tarxz-{tarfile}.log")
     params:
-        outdir=pjoin(OUTDIR,"kmer-count")
+        outdir=pjoin(OUTDIR,"assembly")
     resources:
-        # limit_space=5,
+        limit_space=5,
         disk_mb=10_000_000
     shell:
         """
         mkdir -p {params.outdir}
-        tar -xvf {input} -C {params.outdir}
+        /usr/bin/time -v tar -xvf {input} -C {params.outdir} 2> {log}
         """
 
+# store KMC output (.kmc_pre and .kmc_suf) in fcgr/ directory
 rule count_kmers:
     input:
-        pjoin(OUTDIR, "kmer-count", "{tarfile}", "{fasta}.fa")
+        pjoin(OUTDIR, "assembly", "{tarfile}", "{fasta}.fa")
     output:
-        temp(pjoin(OUTDIR,"kmer-count","{tarfile}", "{fasta}.txt"))
+        pjoin(OUTDIR, "kmer-count","{tarfile}","{fasta}.kmc_pre"),
+        pjoin(OUTDIR, "kmer-count","{tarfile}","{fasta}.kmc_suf"),
+    log:
+        pjoin(OUTDIR, "logs", "count_kmers-{tarfile}-{fasta}.log")
     params:
         kmer=KMER_SIZE,
+        out=lambda w: pjoin(OUTDIR, "kmer-count",f"{w.tarfile}",f"{w.fasta}"),
     conda:
         "../envs/kmc.yaml"
     resources:
@@ -60,34 +71,69 @@ rule count_kmers:
     #     100
     shell:
         """
-        mkdir -p tmp-kmc
-        kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc"
-        kmc_tools -t4 -v transform {input} dump {output} 
-        rm -r {input} {input}.kmc_pre {input}.kmc_suf
+        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t4 -fm {input} {params.out} . 2> {log}
         """
 
-rule fcgr:
-    input: 
-        pjoin(OUTDIR, "kmer-count", "{tarfile}","{fasta}"+".txt"),
-    output:
-        pjoin(OUTDIR, "fcgr", "{tarfile}","{fasta}.npy")
+
+def aggregate_fasta_kmc(wildcards,):
+    "Helper function to collect all .kmc_suf files resulting from running KMC on the set of assemblies of a tarfile"
+    
+    output_tarfile = checkpoints.decompress_tarxz.get(**wildcards).output[0]
+    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
+    outdir = pjoin(OUTDIR, "kmer-count",f"{wildcards.tarfile}")
+    return expand( pjoin(outdir,"{fasta}.kmc_suf"), fasta=list_fasta)    
+
+rule list_path_fasta:
+    input:  
+        aggregate_fasta_kmc
+    output: 
+        pjoin(OUTDIR, "list_path_kmc_{tarfile}.txt")
     params:
-        kmer=KMER_SIZE
-    conda: 
-        "../envs/panspace.yaml"
-    # resources:
-    #     # limit_space=1,
-    #     # disk="1GB",
-    # priority:
-    #     150
+        log=lambda w: OUTDIR.joinpath(f"logs/list_path_fasta._{w.tarfile}.log"),
+        kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
+        fcgrdir=lambda w: pjoin(OUTDIR,"fcgr",f"{w.tarfile}"),
+        parent_fcgrdir = lambda w: pjoin(OUTDIR,"fcgr")
     shell:
         """
-        panspace trainer fcgr --kmer {params.kmer} --path-kmer-counts {input} --path-save {output} 2>> log.err
+        ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log}
         """
+
+# All OK until here ____
+
+checkpoint fcgr:
+    input:
+        pjoin(OUTDIR, "list_path_kmc_{tarfile}.txt")
+    output:
+        directory(pjoin(OUTDIR,"fcgr","{tarfile}"))
+    params:
+        kmer=KMER_SIZE,
+        log=OUTDIR.joinpath("logs/fcgr.log"),
+        kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
+        fcgrdir=lambda w: pjoin(OUTDIR,"fcgr",f"{w.tarfile}"),
+    conda: 
+        "../envs/panspace.yaml"
+    shell:
+        """
+        /usr/bin/time -v /home/avila/github/fcgr/fcgr {input} 2> {params.log}
+        mkdir -p {params.fcgrdir} 
+        mv {params.kmerdir}/*.npy {params.fcgrdir}
+        """
+
+
+def aggregate_numpy_fcgr(wildcards,):
+    "Helper function to collect all FCGR .npy files generated for a set of assemblies of a tarfile"
+    
+    output_tarfile = checkpoints.fcgr.get(**wildcards).output[0]
+    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.kmc_suf") ).fasta
+    return expand( pjoin(OUTDIR, "fcgr",f"{wildcards.tarfile}","{fasta}.npy"), fasta=list_fasta)    
+
 
 rule fake_aggregate:
     input: 
-        aggregate_decompress_tarxz
+        # aggregate_numpy_fcgr,
+        aggregate_numpy_kmer_count
+        # aggregate_fasta_kmc,
+        # aggregate_numpy_fcgr
     output: 
         touch( pjoin(OUTDIR, "{tarfile}_aggregate.flag"))
     priority:

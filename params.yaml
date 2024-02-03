@@ -8,12 +8,12 @@ kmer_size: 6
 # NOTE: the .txt files are removed after the .npy file is created, since the same info is stored in the FCGR (and in less disk space). 
 # If they are needed, remove temp() in 'rule count_kmers' in rules/create_fcgr.smk 
 
-outdir: /data/bacteria/experiments/autoencoders
+outdir: /data/bacteria/experiments/test-fcgr-c
 labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
 
 ##### create_fcgr.smk ######
 fcgr:
-  dir_tarfiles: "/data/bacteria/dataset"
+  dir_tarfiles: /data/bacteria/subsample-dataset/small #"/data/bacteria/dataset"
 
 # kmer counter
 kmc:

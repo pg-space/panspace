@@ -65,7 +65,7 @@ rule list_path_fasta:
         folder_kmc_output=pjoin(OUTDIR, "fcgr")
     shell:
         "ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log} "
-
+    
 rule fcgr:
     input:
         pjoin(OUTDIR, "list_path_kmc.txt")
