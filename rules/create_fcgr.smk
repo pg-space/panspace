@@ -1,4 +1,4 @@
-configfile: "params.yaml"
+configfile: "params-fcgr.yaml"
 import json
 import tarfile
 from os.path import join as pjoin
@@ -17,19 +17,11 @@ TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
 # TARFILES = [tarfile for tarfile in TARFILES if "__01" not in tarfile]
 print(TARFILES)
 
-def aggregate_numpy_kmer_count(wildcards,):
-    "Helper function to collect all FCGR .npy files generated for a set of assemblies of a tarfile"
-    
-    output_tarfile = checkpoints.fcgr.get(**wildcards).output[0]
-    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
-    return expand( pjoin(OUTDIR, "fcgr",f"{wildcards.tarfile}","{fasta}.npy"), fasta=list_fasta)    
 
 
 rule all:
     input:
         expand( pjoin(OUTDIR, "{tarfile}_aggregate.flag"), tarfile=TARFILES)
-
-        # expand(pjoin(OUTDIR, "list_path_kmc_{tarfile}.txt"), tarfile=TARFILES)
 
 # outut fasta files in assembly/ directory
 checkpoint decompress_tarxz:
@@ -72,6 +64,7 @@ rule count_kmers:
     shell:
         """
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t4 -fm {input} {params.out} . 2> {log}
+        rm -r {input}
         """
 
 
@@ -98,7 +91,6 @@ rule list_path_fasta:
         ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log}
         """
 
-# All OK until here ____
 
 checkpoint fcgr:
     input:
@@ -124,17 +116,19 @@ def aggregate_numpy_fcgr(wildcards,):
     "Helper function to collect all FCGR .npy files generated for a set of assemblies of a tarfile"
     
     output_tarfile = checkpoints.fcgr.get(**wildcards).output[0]
-    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.kmc_suf") ).fasta
+    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
     return expand( pjoin(OUTDIR, "fcgr",f"{wildcards.tarfile}","{fasta}.npy"), fasta=list_fasta)    
 
 
 rule fake_aggregate:
     input: 
-        # aggregate_numpy_fcgr,
-        aggregate_numpy_kmer_count
-        # aggregate_fasta_kmc,
-        # aggregate_numpy_fcgr
+        aggregate_numpy_fcgr
     output: 
         touch( pjoin(OUTDIR, "{tarfile}_aggregate.flag"))
     priority:
         200
+    params:     
+        kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
+
+    shell:
+        "rm -r {params.kmerdir}"
