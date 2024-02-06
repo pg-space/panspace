@@ -89,7 +89,12 @@ rule kfold_split:
     conda: 
         "../envs/panspace.yaml"
     shell:
-        "/usr/bin/time -v panspace trainer split-data --datadir {params.datadir} --outdir {params.outdir} --kfold {params.kfold} --labels {params.labels} 2> {log}"
+        """/usr/bin/time -v panspace trainer split-data \
+        --datadir {params.datadir} \
+        --outdir {params.outdir} \
+        --kfold {params.kfold} \
+        --labels {params.labels} 2> {log}
+        """
 
 rule train:
     output:
@@ -114,9 +119,9 @@ rule train:
         patiente_learning_rate=config["train"]["patiente_learning_rate"],
         train_size=config["train"]["train_size"],
         seed=config["train"]["seed"],
-        loss=lambda wildcards: wildcards.loss,#config["train"]["loss"],
-        hidden_activation=lambda wildcards: wildcards.hidden_activation, #config["train"]["hidden_activation"],
-        output_activation=lambda wildcards: wildcards.output_activation,#config["train"]["output_activation"],
+        loss=lambda wildcards: wildcards.loss,
+        hidden_activation=lambda wildcards: wildcards.hidden_activation,
+        output_activation=lambda wildcards: wildcards.output_activation,
         preprocessing=config["train"]["preprocessing"]
     shell:
         """/usr/bin/time -v panspace trainer train-autoencoder \
@@ -142,7 +147,6 @@ rule train:
 rule extract_encoder:
     output:
         Path(PATH_TRAIN).joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/models/encoder.keras"),
-        # Path(PATH_TRAIN).joinpath(f"models/decoder.keras")
     input:
         PATH_TRAIN.joinpath("{loss}-{hidden_activation}-{output_activation}-{kfold}-fold/checkpoints").joinpath(f"weights-{ARCHITECTURE}.keras"),
     params:

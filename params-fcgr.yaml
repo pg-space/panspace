@@ -2,4 +2,4 @@ kmer_size: 6
 outdir: /data/bacteria/experiments/boosted-fcgr
 
 fcgr:
-  dir_tarfiles: /data/bacteria/subsample-dataset/small # /data/bacteria/datasets/661k-bacteria 
+  dir_tarfiles: /data/bacteria/datasets/661k-bacteria #  /data/bacteria/subsample-dataset/small # 

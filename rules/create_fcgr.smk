@@ -18,7 +18,6 @@ TARFILES,= glob_wildcards(pjoin(DIR_TARFILES,"{tarfile}"+".tar.xz"))
 print(TARFILES)
 
 
-
 rule all:
     input:
         expand( pjoin(OUTDIR, "{tarfile}_aggregate.flag"), tarfile=TARFILES)
@@ -35,7 +34,7 @@ checkpoint decompress_tarxz:
         outdir=pjoin(OUTDIR,"assembly")
     resources:
         limit_space=5,
-        disk_mb=10_000_000
+    #     disk_mb=20_000_000
     shell:
         """
         mkdir -p {params.outdir}
@@ -56,11 +55,11 @@ rule count_kmers:
         out=lambda w: pjoin(OUTDIR, "kmer-count",f"{w.tarfile}",f"{w.fasta}"),
     conda:
         "../envs/kmc.yaml"
-    resources:
+    # resources:
         # limit_space=1,
-        disk_mb=10_000_000,
-    # priority:
-    #     100
+        # disk_mb=20_000_000,
+    priority:
+        100
     shell:
         """
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t4 -fm {input} {params.out} . 2> {log}
@@ -125,8 +124,8 @@ rule fake_aggregate:
         aggregate_numpy_fcgr
     output: 
         touch( pjoin(OUTDIR, "{tarfile}_aggregate.flag"))
-    priority:
-        200
+    # priority:
+    #     200
     params:     
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
 

@@ -36,9 +36,22 @@ mamba activate snakemake
 ## 1. Generate FCGR
 
 This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
+
+To create FCGR from all 661k bacterial dataset, run
 ```bash
-snakemake -s rules/create_fcgr.smk -c16 --use-conda
+snakemake -s rules/create_fcgr_tarxz.smk -c16 --use-conda
 ```
+In the bacterial dataset input files are like `<some-name>.tar.xz`, where each compressed file contains a foder named `<some-name>/<assembly-id>.fa`
+this pipeline assumes that assemblies follow this.
+
+If you have a set of fasta files, you can use
+
+```bash
+snakemake -s rules/create_fcgr_fasta.smk -c16 --use-conda
+```
+
+*EXTENSIONS ACCEPTED*: `.fa` , `.fna`, `.fasta`
+
 
 ## 2. Train Autoencoder and create index
 
@@ -47,7 +60,7 @@ snakemake -s rules/create_index.smk -c16 --use-conda --resources nvidia_gpu=1
 ```
 
 ## 3. Query index
-In params, define the following parameters:
+In `params-query.yaml`, define the following parameters:
 
 ```yaml 
 query:
@@ -63,3 +76,5 @@ snakemake -s rules/query_index.smk -c16 --use-conda --resources nvidia_gpu=1
 
 
 ___
+# Author
+`panspace` is developed by [Jorge Avila](https://github.com/jorgeavilacartes/)

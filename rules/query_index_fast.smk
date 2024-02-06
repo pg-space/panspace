@@ -10,9 +10,9 @@ import json
 
 KMER_SIZE=6#config["kmer_size"]
 # PATH_EXP=Path(config["outdir"]).joinpath(f"{KMER_SIZE}mer").joinpath(config["train"]["name_experiment"])#.joinpath("cross-validation/mean_squared_error-relu-relu-1-fold")
-PATH_EXP=Path(config["query"]["path_panspace"])
-OUTDIR = Path(config["query"]["outdir"])
-DIR_FASTA=Path(config["query"]["dir_fasta"])
+PATH_EXP=Path(config["path_panspace"])
+OUTDIR = Path(config["outdir"])
+DIR_FASTA=Path(config["dir_fasta"])
 # DIR_FCGR=Path(config["query"]["dir_fcgr"])
 OUTDIR.mkdir(exist_ok=True, parents=True)
 

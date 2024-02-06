@@ -21,7 +21,8 @@ class Optimizer(str, Enum):
     Adamax="adamax"
     Adafactor="adafactor"
     Nadam="nadam"
-
+    Ranger="ranger"
+    
 class Loss(str, Enum):
     BinaryCrossEntropy="binary_crossentropy"
     MSE="mean_squared_error"

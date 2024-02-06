@@ -8,7 +8,7 @@ kmer_size: 6
 # NOTE: the .txt files are removed after the .npy file is created, since the same info is stored in the FCGR (and in less disk space). 
 # If they are needed, remove temp() in 'rule count_kmers' in rules/create_fcgr.smk 
 
-outdir: /data/bacteria/experiments/test-fcgr-c
+outdir: /data/bacteria/experiments/autoencoders
 labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
 
 ##### create_fcgr.smk ######
@@ -25,26 +25,26 @@ kmc:
 
 ##### create_index.smk ######  
 train:
-  name_experiment: 01_22_2024-1 #<mm_dd_aaaa-nexperiment>
+  name_experiment: 02_06_2024-1 #<mm_dd_aaaa-nexperiment>
   latent_dim: 100
-  epochs: 15  
+  epochs: 100  
   batch_size: 256 # best trade off 
   architecture: 'AutoencoderFCGR'
   patiente_early_stopping: 5
   patiente_learning_rate: 2
   train_size: 0.8
-  optimizer: adam
+  optimizer: ranger
   # choose combinations of loss and activation functions
   # (loss, output_activation, hidden_activation) triplets will be run as zip() (not all combinations)
   loss: # categorical_crossentropy binary_crossentropy mean_squared_error 
-    - mean_squared_error 
-    # - binary_crossentropy
+    # - mean_squared_error 
+    - binary_crossentropy
   output_activation: # sigmoid relu softmax  
-    - relu 
-    # - sigmoid
+    # - relu 
+    - sigmoid
   hidden_activation: # sigmoid relu softmax 
-    - relu 
-    # - relu
+    # - relu 
+    - relu
   preprocessing: scale_zero_one # distribution scale_zero_one 
   seed: 42
   kfold: 5
