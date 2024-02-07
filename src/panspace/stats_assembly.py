@@ -17,7 +17,7 @@ EXTENSIONS = ["fa","fasta","fna"]
 def stats_fasta(
                 fasta: Annotated[Path, typer.Option("--fasta","-f",help="file or directory, extensions recognized are: .fna .fasta .fa")],
                 outdir: Annotated[Path, typer.Option("--outdir","-o",help="path to a .csv file")]
-                ):
+                ) -> None:
 
     import numpy as np 
     import pandas as pd

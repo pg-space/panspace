@@ -14,7 +14,7 @@ from rich import print
 from rich.console import Console
 
 # for typer
-from .utils import Autoencoder, Optimizer, Loss, Activation, Preprocessing
+from .dataclasses_cli import Autoencoder, Optimizer, Loss, Activation, Preprocessing
 
 console=Console()
 app = typer.Typer(rich_markup_mode="rich",
