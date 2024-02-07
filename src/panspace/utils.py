@@ -94,3 +94,4 @@ class LogInfo:
             usrbintime[feat] = float(value)
 
         return usrbintime
+    

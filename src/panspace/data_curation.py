@@ -47,6 +47,7 @@ def outlier_detection(
     # query index with test set
     D_query, I_query = index.search(test_emb, k=neighbors)
     avg_dist_query = D_query.mean(axis=1)
+    np.save(outdir.joinpath(f"train_avg_dist.py"), avg_dist)
 
     # df_train = pd.read_csv(path_train_metadata, sep="\t")
     df_test = pd.read_csv(path_test_metadata, sep="\t", header=None)#[:100]
@@ -54,6 +55,7 @@ def outlier_detection(
     df_test.columns = ["path","label"]
     console.print(len(avg_dist_query))
     df_test["avg_dist"] = avg_dist_query
+    np.save(outdir.joinpath(f"test_avg_dist.py"), avg_dist_query)
 
     # save results, return flagged outliers
     outdir = Path(outdir)

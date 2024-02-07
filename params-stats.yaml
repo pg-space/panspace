@@ -1,0 +1,5 @@
+kmer_size: 6
+outdir: /data/bacteria/datasets/stats-661k-bacteria
+
+fcgr:
+  dir_tarfiles: /data/bacteria/datasets/661k-bacteria #  /data/bacteria/subsample-dataset/small # 

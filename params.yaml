@@ -13,7 +13,7 @@ labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
 
 ##### create_fcgr.smk ######
 fcgr:
-  dir_tarfiles: /data/bacteria/subsample-dataset/small #"/data/bacteria/dataset"
+  dir_tarfiles: /data/bacteria/datasets/661k-bacteria #/data/bacteria/subsample-dataset/small #""
 
 # kmer counter
 kmc:
@@ -30,8 +30,8 @@ train:
   epochs: 100  
   batch_size: 256 # best trade off 
   architecture: 'AutoencoderFCGR'
-  patiente_early_stopping: 5
-  patiente_learning_rate: 2
+  patiente_early_stopping: 25
+  patiente_learning_rate: 20
   train_size: 0.8
   optimizer: ranger
   # choose combinations of loss and activation functions
