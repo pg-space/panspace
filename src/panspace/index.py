@@ -25,7 +25,7 @@ def create_index(
     import tensorflow as tf
 
     from pathlib import Path
-    from .dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
+    from .dnn.loaders import DataLoaderAutoencoder as DataLoader
         
     # PATH_EXP=path_experiment
     LATENT_DIM=latent_dim
@@ -104,19 +104,17 @@ def create_index(
 
 @app.command("query", help="Query Index with FCGR from other sequences.")
 def query_index(
-        # path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
         path_fcgr: Annotated[Path, typer.Option("--path-fcgr","-p", help="path to folder with the query FCGR in .npy format, or .txt file with paths in its first column.")],
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
-        path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
+        path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path where index is stored. Eg: path/to/panspace.index")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
-        reshape_fcgr: Annotated[bool, typer.Option("--reshape-fcgr", help="reshape a row input to square FCGR matrix. kmer size is required")]=True,
         col_labels: Annotated[int, typer.Option("--col-labels","-l", help="column with labels (ground_truth) in <path_fcgr>.txt")] = 1,
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
         kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")] = 6,
         ) -> None:
         # batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
-    console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
+    # console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
     import json
     import tensorflow as tf
     import faiss
@@ -126,7 +124,7 @@ def query_index(
     from pathlib import Path
     from collections import Counter
 
-    from .dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
+    from .dnn.loaders import DataLoaderAutoencoder as DataLoader
 
     PATH_INDEX=path_index # path to faiss panspace.index 
     PATH_ENCODER=path_encoder # path to encoder.keras model
@@ -169,8 +167,6 @@ def query_index(
         label = pos_to_label[pos]
         labels_by_sampleid[sampleid] = label
     
-    # "_".join(labels_by_sampleid[sample_id].split(" "))
-
     # 0. load index
     console.print(":dna: Loading Index...")
     index = faiss.read_index(str(PATH_INDEX))
@@ -194,7 +190,6 @@ def query_index(
         shuffle=False,
         preprocessing=preprocessing,
         inference_mode=True,
-        reshape=reshape_fcgr, #True if reshape_fcgr ==1 else False,
         kmer_size=kmer_size,
     )
 

@@ -1,0 +1,103 @@
+"Load data to the model (Same as dataset.py but with keras)"
+from typing import List, Union, Callable, Optional
+from pathlib import Path
+import numpy as np
+import tensorflow as tf
+
+# from .utils import EncoderOutput
+
+class DataLoaderMetricLearning(tf.keras.utils.Sequence):
+    """Data Loader for keras from a list of paths to npy files containing the FCGR as numpy array
+    """ 
+
+    def __init__(self, 
+                list_paths: List[Union[str, Path]], 
+                list_labels: Optional[List[str]] = None,
+                batch_size: int = 8,
+                shuffle: bool = True,      
+                preprocessing: Optional[Callable] = None,
+                inference_mode: bool = False,
+                kmer_size: int = 6,
+                ):
+        self.list_paths = list_paths
+        self.list_labels = list_labels
+        self.batch_size = batch_size 
+        self.shuffle = shuffle
+        self.preprocessing = preprocessing if callable(preprocessing) else lambda x: x
+        self.inference_mode= inference_mode
+
+        self.kmer_size=kmer_size
+        self.shape_fcgr=(2**kmer_size, 2**kmer_size)
+
+        # encoder output (must be an integer)
+        unique_labels = list(set(list_labels))
+        unique_labels.sort()
+        self.encoder_output = {label: num for num, label in enumerate(unique_labels)}
+
+        # initialize first batch
+        self.on_epoch_end()
+
+    def on_epoch_end(self,):
+        """Updates indexes after each epoch (starting for the epoch '0')"""
+        self.indexes = np.arange(len(self.list_paths))
+        if self.shuffle == True:
+            np.random.shuffle(self.indexes) # shuffle indexes in place
+
+    def __len__(self):
+        # Must be implemented
+        """Denotes the number of batches per epoch"""
+        delta = 1 if len(self.list_paths) % self.batch_size else 0 
+        return len(self.list_paths) // self.batch_size + delta
+
+    def __getitem__(self, index):
+        # >> Must be implemented <<
+        """To feed the model with data in training
+        It generates one batch of data
+        """
+        # Generate indexes of the batch
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+
+        # Find list of paths and labels
+        list_paths_temp = [self.list_paths[k] for k in indexes]
+        if self.inference_mode is True:
+            # ommit labels
+            X = self.batch_generation(list_paths_temp)
+            return X
+
+        # consider labels 
+        list_labels_temp = [self.list_labels[k] for k in indexes]
+        X, y = self.batch_generation(list_paths_temp, list_labels_temp)
+        
+        return X, y
+    
+    def batch_generation(self, list_path_temp: List[str], list_labels_temp: Optional[List[str]]=None):
+        """Generates and augment data containing batch_size samples
+        Args:
+            list_path_temp (List[str]): sublist of list_path
+        Returns:
+            X : numpy.array
+            y : numpy.array hot-encoding
+        """ 
+        X_batch = []
+        y_batch = []
+
+        if list_labels_temp is None:
+
+            for path, label in zip(list_path_temp, list_labels_temp): 
+                npy = np.load(path)
+                npy = self.preprocessing(npy)
+                npy = np.expand_dims(npy, axis=-1)# add channel dimension
+                X_batch.append(np.expand_dims(npy,axis=0)) # add to list with batch dims
+                
+            return np.concatenate(X_batch, axis=0)
+
+        else: 
+
+            for path, label in zip(list_path_temp, list_labels_temp): 
+                npy = np.load(path)
+                npy = self.preprocessing(npy)
+                npy = np.expand_dims(npy, axis=-1)# add channel dimension
+                X_batch.append(np.expand_dims(npy,axis=0)) # add to list with batch dims
+                y_batch.append(self.encoder_output[label])
+
+            return np.concatenate(X_batch, axis=0), np.array(y_batch) 

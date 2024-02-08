@@ -14,14 +14,23 @@ from rich import print
 from rich.console import Console
 
 # for typer
-from .dataclasses_cli import Autoencoder, Optimizer, Loss, Activation, Preprocessing
+# from .dataclasses_cli import 
+from .dataclasses_cli import (
+    Autoencoder,
+    ModelMetricLearning, 
+    Optimizer, 
+    LossAutoencoder,
+    LossMetricLearning, 
+    Activation, 
+    Preprocessing,
+)
 
 console=Console()
 app = typer.Typer(rich_markup_mode="rich",
-    help="Create FCGRs, Train an Autoencoder, and extract the Encoder from it to map FCGRs to the embedding space.")
+    help="Train Autoencoder/Metric Learning. Utilities.")
 
 @app.command("train-autoencoder", help="Train an autoencoder.")
-def train(
+def train_autoencoder(
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
         datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored. If None, training_list will be used")] = None,
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR to be used for training the autoencoder. If None, datadir will be used")] = None,
@@ -34,7 +43,7 @@ def train(
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.Distribution.value,
         epochs: Annotated[int, typer.Option(min=1)] = 50,
         batch_size: Annotated[int, typer.Option(min=1)] = 64,
-        loss: Annotated[Loss, typer.Option(help="loss function (keras option with default params)")] = Loss.CategoricalCrossEntropy.value,
+        loss: Annotated[LossAutoencoder, typer.Option(help="loss function (keras option with default params)")] = LossAutoencoder.CategoricalCrossEntropy.value,
         optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
         patiente_early_stopping: Annotated[int, typer.Option()] = 20,
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
@@ -45,7 +54,7 @@ def train(
 
     from collections import Counter
     import tensorflow as tf
-    from .dnn.loaders.VARdataloader import DataLoaderVAR as DataLoader
+    from .dnn.loaders import DataLoaderAutoencoder as DataLoader
     from .dnn.models import (
         DenseAutoencoder,
         CNNAutoencoder,
@@ -208,6 +217,7 @@ def train(
         optimizer = ranger
     else:
         optimizer=optimizer.value
+
     autoencoder.compile(optimizer=optimizer, loss=loss.value)
     autoencoder.fit(
         ds_train, 
@@ -264,40 +274,6 @@ def split_autoencoder(
             # Save as .keras models
             model = eval(f"{name_model}")
             model.save(path_save_models.joinpath(f"{name_model}.keras"))
-
-@app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
-def create_fcgr_kmc(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
-                path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
-                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
-
-    from .fcgr.fcgr_from_kmc import FCGRKmc
-    import numpy as np
-    from pathlib import Path
-
-    fcgr = FCGRKmc(kmer)
-    m = fcgr(path_kmer_counts)
-    Path(path_save).parent.mkdir(exist_ok=True, parents=True)
-    np.save(path_save, m)
-
-@app.command("fcgr-fasta",help="Create the Frequency matrix of CGR (FCGR) from a fasta file.")
-def create_fcgr_fasta(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mode="r", help="path to .fa file with assembly.")],
-                path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
-                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
-
-    # from .fcgr.fcgr_from_kmc import FCGRKmc
-    from complexcgr import FCGR
-    import numpy as np
-    from pathlib import Path
-    from Bio import SeqIO
-
-    fcgr = FCGR(kmer)
-    with open(path_fasta,"r") as fp:
-        record = SeqIO.read(fp, format="fasta")
-    
-    m = fcgr(sequence=record.seq)
-
-    Path(path_save).parent.mkdir(exist_ok=True, parents=True)
-    np.save(path_save, m)
 
 @app.command("split-data", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
 def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
@@ -370,4 +346,179 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                     else:
                         fp.write(f"{path}\n")
 
-    print("finished")
+    print("finished")   
+
+@app.command("train-metric-learning", help="Create embedding using labels in training")
+def train_metric_learning(
+        outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
+        training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
+        architecture: Annotated[ModelMetricLearning, typer.Option(help="name of the model to be used for training")] = ModelMetricLearning.CNNFCGR.value,
+        latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 100, 
+        kmer: Annotated[int, typer.Option(min=1)] = 6,
+        hidden_activation: Annotated[Activation,typer.Option(help="activation function for hidden layers")]=Activation.Relu.value,
+        batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.Distribution.value,
+        epochs: Annotated[int, typer.Option(min=1)] = 2,
+        batch_size: Annotated[int, typer.Option(min=1)] = 256,
+        loss: Annotated[LossMetricLearning, typer.Option(help="loss function")] = LossMetricLearning.TripletSemiHard.value,
+        optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
+        patiente_early_stopping: Annotated[int, typer.Option()] = 20,
+        patiente_learning_rate: Annotated[int, typer.Option()] = 10,
+        train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8,
+        seed: Annotated[int, typer.Option(help= "to reproduce split of dataset")] = 42,
+        ) -> None:
+    print(f"Training neural network of type: {architecture.value}")
+
+    # assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
+    import tensorflow as tf
+    import tensorflow_addons as tfa
+    from .dnn.loaders import DataLoaderMetricLearning as DataLoader
+    from .dnn.callbacks import CSVTimeHistory
+    from .dnn.models.metric_learning import CNNFCGR
+
+    KMER=kmer
+
+    # parameters train
+    LATENT_DIM=latent_dim
+    EPOCHS=epochs
+    BATCH_SIZE=batch_size
+    ARCHITECTURE=architecture
+    PATIENTE_EARLY_STOPPING=patiente_early_stopping
+    PATIENTE_LEARNING_RATE=patiente_learning_rate
+    TRAIN_SIZE=train_size
+    SEED=seed
+
+    # folder where to save training results
+    PATH_TRAIN=Path(outdir)
+    PATH_TRAIN.mkdir(exist_ok=True, parents=True)
+
+    # preprocessing of each FCGR to feed the model 
+    if preprocessing == "distribution":
+        # sum = 1
+        preprocessing = lambda x: x / x.sum().sum()    
+    else: 
+        # scale [0,1]
+        preprocessing = lambda x: x / x.max() 
+
+    # ------ data split ------
+
+    # From training list
+    list_paths = []
+    list_labels = []
+    with open(training_list, "r") as fp:
+        for line in fp.readlines():
+            path, label = line.replace("\n","").strip().split("\t") # first column of the input file 
+            if path.endswith(".npy"): 
+                list_paths.append(path)
+                list_labels.append(label)
+
+    N_paths = len(list_paths)
+    pos_cut = int(N_paths*train_size)
+    list_train = list_paths[:pos_cut]
+    labels_train = list_labels[:pos_cut]
+    list_val   = list_paths[pos_cut:]
+    labels_val = list_labels[pos_cut:]
+
+    # ------ training -----
+        
+    # dataset train
+    ds_train = DataLoader(
+        list_paths=list_train,
+        list_labels=labels_train,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        preprocessing=preprocessing
+    )
+
+    # dataset validation
+    ds_val = DataLoader(
+        list_paths=list_val,
+        list_labels=labels_val,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        preprocessing=preprocessing
+    )
+
+    # - Callbacks: actions that are triggered at the end of each epoch
+    # checkpoint: save best weights
+    Path(f"{PATH_TRAIN}/checkpoints").mkdir(exist_ok=True, parents=True)
+    cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        filepath=f'{PATH_TRAIN}/checkpoints/weights-{ARCHITECTURE}.keras',
+        monitor='val_loss',
+        mode='min',
+        save_best_only=True,
+        verbose=1
+    )
+
+    # reduce learning rate
+    cb_reducelr = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        mode='min',
+        factor=0.1,
+        patience=PATIENTE_LEARNING_RATE,
+        verbose=1,
+        min_lr=0.00001
+    )
+
+    # stop training if
+    cb_earlystop = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        mode='min',
+        min_delta=0.001,
+        patience=PATIENTE_EARLY_STOPPING,
+        verbose=1
+    )
+
+    # save history of training
+    cb_csvlogger = tf.keras.callbacks.CSVLogger(
+        filename=f'{PATH_TRAIN}/training_log.csv',
+        separator='\t',
+        append=False
+    )
+
+    # save time by epoch
+    cb_csvtime = CSVTimeHistory(
+        filename=f'{PATH_TRAIN}/time_log.csv',
+        separator='\t',
+        append=False
+    )
+    # print(autoencoder.model.summary())
+   
+    # ---- optimizer ----
+    if optimizer.value=="ranger":
+        
+        radam = tfa.optimizers.RectifiedAdam()
+        ranger = tfa.optimizers.Lookahead(radam, sync_period=6, slow_step_size=0.5)
+        optimizer = ranger
+    else:
+        optimizer=optimizer.value
+
+    # ---- loss function ----
+    if loss.value == "triplet_hard":
+        loss = tfa.losses.TripletHard(margin=0.01, distance_metric="L2", soft=False)    
+    elif loss.value == "triplet_semihard_loss": 
+        loss = tfa.losses.TripletSemiHardLoss(margin=0.01, distance_metric="L2")
+    else:
+        loss = tfa.losses.ContrastiveLoss()
+
+    # Load and train model
+    model=eval(f"""{ARCHITECTURE}(latent_dim = {LATENT_DIM}, 
+                hidden_activation='{hidden_activation}', 
+                kmer={kmer}, 
+                batch_normalization={batch_normalization},
+                )""")    
+    
+    model.compile(optimizer=optimizer, loss=loss)
+    
+    model.fit(
+        ds_train, 
+        validation_data=ds_val, 
+        epochs=EPOCHS,
+        callbacks=[
+            cb_checkpoint,
+            cb_reducelr,
+            cb_earlystop,
+            cb_csvlogger,
+            cb_csvtime
+            ]
+    )

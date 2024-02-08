@@ -23,7 +23,7 @@ def AutoencoderFCGR(latent_dim: int = 100,
         filters = l*4 # channels / independent features in depth
         kernel_size=2
         stride=2
-        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=stride, activation=hidden_activation, padding='valid')(input_enc) if l==kmer else  Conv2D(filters=filters, kernel_size=kernel_size, strides=stride, padding='valid')(x) #ConvFCGR(filters=filters,levels=1)(input_enc) if l==kmer else ConvFCGR(filters=filters,levels=1)(x)
+        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=stride, activation=hidden_activation, padding='valid')(input_enc) if l==kmer else  Conv2D(filters=filters, kernel_size=kernel_size, strides=stride, activation=hidden_activation, padding='valid')(x) #ConvFCGR(filters=filters,levels=1)(input_enc) if l==kmer else ConvFCGR(filters=filters,levels=1)(x)
         if batch_normalization:
             x = tf.keras.layers.BatchNormalization(axis=-1)(x)
         l -=1

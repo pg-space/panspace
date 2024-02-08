@@ -9,7 +9,7 @@ from rich import print
 from rich.console import Console
 
 console=Console()
-app = typer.Typer(help="Create and query index. Utilities to test index.")
+app = typer.Typer(help="N50, number of contigs, avg length, total length.")
 
 EXTENSIONS = ["fa","fasta","fna"]
 

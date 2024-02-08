@@ -81,7 +81,7 @@ rule fcgr:
         "../envs/panspace.yaml"
     shell:
         """
-        /usr/bin/time -v ~denti/fcgr/main {input} 2> {params.log}
+        /usr/bin/time -v /home/avila/github/fcgr/fcgr {input} 2> {params.log}
         """
 
 rule query_index:
@@ -113,8 +113,7 @@ rule query_index:
         --kmer-size {params.kmer} \
         --outdir {params.outdir} 2> {params.log}
         """
-        # --reshape-fcgr \
-
+        
 rule add_path_fasta_to_predictions:
     input:
         pjoin(OUTDIR, "query_results.csv")
