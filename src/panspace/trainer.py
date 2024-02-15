@@ -275,16 +275,19 @@ def split_autoencoder(
             model = eval(f"{name_model}")
             model.save(path_save_models.joinpath(f"{name_model}.keras"))
 
-@app.command("split-data", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
-def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
-               outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
-               kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = None,
-               path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the sample_id (eg. path/to/<sample_id>.fa) and second column is the label (tab separated)")] = None
-               ):
+@app.command("split-data-cross-validation", help="Split a list of files in either train, validation and test, or in sets for k-fold validation.")
+def split_dataset_cross_validation(
+            datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
+            outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
+            kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = 5,
+            path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the prefix of the filename (eg. path/to/<prefix>.fa) and second column is the label (tab separated)")] = None,
+            seed: Annotated[int, typer.Option("--seed", "-s", help= "to reproduce split of dataset")] = 42,
+            ):
     
     from pathlib import Path
-    from .dnn.utils.split_data import TrainValTestSplit
     from .dnn.utils.split_data_cross_validation import CrossValidationSplit
+
+    SEED = seed 
 
     list_paths = [str(p) for p in Path(datadir).rglob("*.npy")]
 
@@ -306,7 +309,7 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                     continue #to avoid failing when lines are empty or no valid info
         # del labels_by_sampleid
         
-    if kfold:
+    if kfold > 1:
         print("Cross validation")
         split_cv = CrossValidationSplit(kfolds=kfold)
         paths_by_partition = split_cv(list_paths)
@@ -348,7 +351,84 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
                     else:
                         fp.write(f"{path}\n")
 
-    print("finished")   
+        print("finished")  
+
+@app.command("split-data")
+def split_dataset(
+            datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
+            outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
+            train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8,
+            path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the prefix of the filename (eg. path/to/<prefix>.fa) and second column is the label (tab separated)")] = None,
+            seed: Annotated[int, typer.Option("--seed", "-s", help= "to reproduce split of dataset")] = 42,
+        ):
+
+    from .dnn.utils.split_data import TrainValTestSplit
+
+    list_paths = [str(p) for p in Path(datadir).rglob("*.npy")]
+
+    outdir=Path(outdir)
+    outdir.mkdir(exist_ok=True, parents=True)
+
+    # labels
+    if path_labels: 
+        labels_by_sampleid = dict()
+        with open(path_labels, "r") as fp:
+            for line in fp.readlines():
+                try:
+                    # TODO: any better way to standarize the label? could change for other experiments
+                    sample_id, label = line.replace("\n","").strip().split("\t")
+                    sample_id = sample_id.strip()
+                    label = "_".join(label.lower().strip().split(" "))
+                    labels_by_sampleid[sample_id] = label
+                except:
+                    continue #to avoid failing when lines are empty or no valid info
+
+    labels = [labels_by_sampleid.get(Path(p).stem, "unknown") for p in list_paths]
+    print(set(labels))
+    tvt_split = TrainValTestSplit(id_labels=list_paths, labels=labels, seed=seed)
+    tvt_split(train_size=train_size, balanced_on=labels) # split datasets
+    list_train = tvt_split.datasets["id_labels"]["train"]
+    list_val   = tvt_split.datasets["id_labels"]["val"]
+    list_test  = tvt_split.datasets["id_labels"]["test"]
+
+    labels_train = tvt_split.datasets["labels"]["train"]
+    labels_val   = tvt_split.datasets["labels"]["val"]
+    labels_test  = tvt_split.datasets["labels"]["test"]
+
+    # with open(outdir.joinpath("summary-split.json"),"w") as fp:
+    #     json.dump(tvt_split.get_summary_labels(), fp)
+
+    # # save split
+    # with open(outdir.joinpath("split-train-val-test.json"),"w") as fp:
+    #     json.dump(tvt_split.datasets, fp, indent=4)
+    
+    # txt train 
+    with open(outdir.joinpath("train.txt"),"w") as fp:
+        paths = list_train + list_val
+        labels = labels_train + labels_val
+
+        for path, label in zip(paths, labels):
+            
+            if path_labels:
+                sample_id = Path(path).stem
+                label = labels_by_sampleid.get(sample_id, "unknown")
+                fp.write(f"{path}\t{label}\n") 
+            else:
+                fp.write(f"{path}\n")
+    
+    # txt test
+    with open(outdir.joinpath("test.txt"),"w") as fp:
+        
+        for path, label in zip(list_test, labels_test):
+            
+            if path_labels:
+                sample_id = Path(path).stem
+                label = labels_by_sampleid.get(sample_id, "unknown")
+                fp.write(f"{path}\t{label}\n") 
+            else:
+                fp.write(f"{path}\n")
+    
+    print("finished")
 
 @app.command("train-metric-learning", help="Create embedding using labels in training")
 def train_metric_learning(
@@ -389,7 +469,6 @@ def train_metric_learning(
     PATIENTE_EARLY_STOPPING=patiente_early_stopping
     PATIENTE_LEARNING_RATE=patiente_learning_rate
     TRAIN_SIZE=train_size
-    SEED=seed
 
     # folder where to save training results
     PATH_TRAIN=Path(outdir)
@@ -403,7 +482,7 @@ def train_metric_learning(
         # scale [0,1]
         preprocessing = lambda x: x / x.max() 
 
-    # ------ data split ------
+    # ------ data split: training + validation ------
 
     # From training list
     list_paths = []
@@ -416,7 +495,7 @@ def train_metric_learning(
                 list_labels.append(label)
 
     N_paths = len(list_paths)
-    pos_cut = int(N_paths*train_size)
+    pos_cut = int(N_paths*TRAIN_SIZE)
     list_train = list_paths[:pos_cut]
     labels_train = list_labels[:pos_cut]
     list_val   = list_paths[pos_cut:]
@@ -508,6 +587,8 @@ def train_metric_learning(
                 kmer={kmer}, 
                 batch_normalization={batch_normalization},
                 )""")    
+    
+    # TODO: load pre-trained weights
     
     model.compile(optimizer=optimizer, loss=loss)
     

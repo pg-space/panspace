@@ -1,9 +1,10 @@
 """
-Partition an input list of files into 5 subsets. 
-Output .txt files with the partitions to be used for training an autoencoder.
+Partition an input list of files into 'kfolds' subsets. 
+Output a dictionary with keys the partitions, and values the list of paths in the partition.
 """
 import random
 import numpy as np
+
 
 from collections import defaultdict
 
@@ -12,6 +13,8 @@ class CrossValidationSplit:
 
     def __init__(self, kfolds: int = 5, seed=42):
         random.seed(seed) #reproducibility
+        np.random.seed(seed)
+
         self.kfolds = kfolds
 
 
