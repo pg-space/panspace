@@ -43,15 +43,12 @@ rule count_kmers:
         "../envs/kmc.yaml"
     log:
         kmc=OUTDIR.joinpath("logs/count_kmers_kmc-{fasta}.log"),
-        # dump=OUTDIR.joinpath("logs/count_kmers_dump-{fasta}.log"),
     shell:
         """
         mkdir -p tmp-kmc
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {params.prefix} "tmp-kmc" 2> {log.kmc}
         """
-        # /usr/bin/time -v kmc_tools -t4 -v transform {input} dump {output} 2> {log.dump}
-        # rm -r {input}.kmc_pre {input}.kmc_suf
-    
+
 rule list_path_fasta:
     input:  
         expand(
@@ -99,11 +96,13 @@ rule query_index:
         nvidia_gpu=1
     params:
         path_fcgr=pjoin(OUTDIR,"fcgr"),
-        path_encoder=PATH_EXP.joinpath("models/encoder.keras"),
+        # path_encoder=PATH_EXP.joinpath("models/encoder.keras"),
+        path_encoder=PATH_EXP.joinpath("checkpoints/weights-CNNFCGR.keras"),
         path_index=PATH_EXP.joinpath("faiss-embeddings/panspace.index"),
         outdir=OUTDIR,
         log=Path(OUTDIR).joinpath("logs/query_index.log"),
         kmer=KMER_SIZE,
+        threshold_outlier=config["threshold_outlier"]
     shell:
         """
         /usr/bin/time -v panspace index query \
@@ -111,6 +110,7 @@ rule query_index:
         --path-index {params.path_index} \
         --path-fcgr {params.path_fcgr} \
         --kmer-size {params.kmer} \
+        --threshold-outlier {params.threshold_outlier} \
         --outdir {params.outdir} 2> {params.log}
         """
         

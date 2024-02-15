@@ -19,7 +19,6 @@ rule:
     input: 
         Path(PATH_TRAIN).joinpath("test/query_results.csv"),
         Path(PATH_TRAIN).joinpath("test/embeddings.npy"),
-        # expand( Path(PATH_TRAIN).joinpath("test/precision_recall_consensus_{n_neighbors}.csv"), n_neighbors=[1,3,5,10])
 
 rule train:
     output:

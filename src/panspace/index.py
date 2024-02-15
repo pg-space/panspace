@@ -112,6 +112,7 @@ def query_index(
         neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
         kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")] = 6,
+        threshold_outlier: Annotated[float, typer.Option("--threshold-outlier","-to", help="Average distance threshold to flag outlier")] = None,
         ) -> None:
         # batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
     # console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
@@ -237,6 +238,7 @@ def query_index(
     
     console.print(":dna: Creating CSV output...")
     df = pd.DataFrame([{"sample_id_query": path.stem,} for path in list_paths])
+    df["avg_dist"] = D.mean(axis=1) 
 
     console.print(":dna: Adding label and distances for each neighbor query in CSV output...")
     range_n = list(range(neighbors))
@@ -244,6 +246,9 @@ def query_index(
         df[f"sample_id_{n}"] = neighbors_sample_ids[:,n]
         df[f"label_{n}"] = neighbors_labels[:,n]
         df[f"distance_to_{n}"] = D[:,n]
+
+    if threshold_outlier:
+        df["outlier"] = df["avg_dist"].apply(lambda x: True if x > threshold_outlier else False)
 
     # # Save results
     console.print(":dna: Saving results...")

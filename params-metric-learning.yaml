@@ -1,0 +1,41 @@
+##### Global ####
+kmer_size: 6
+
+# Inside the <outdir> folder will be created the "{kmer_size}mer/kmer-count/" 
+# and "{kmer_size}mer/fcgr/" directories. 
+# The first one with .txt files containing tuples of (k-mer, count)
+# The second one is the FCGR matrix in stored in a .npy file that is used to train models
+# NOTE: the .txt files are removed after the .npy file is created, since the same info is stored in the FCGR (and in less disk space). 
+# If they are needed, remove temp() in 'rule count_kmers' in rules/create_fcgr.smk 
+
+outdir: /data/bacteria/experiments/metric-learning
+labels: /data/bacteria/labels_krakenbracken_by_sampleid.txt
+
+path_fcgr: /data/bacteria/experiments/autoencoders/6mer/fcgr
+
+##### create_index.smk ######  
+train:
+  name_experiment: 02_13_2024-1 #<mm_dd_aaaa-nexperiment>
+  latent_dim: 100
+  epochs: 100  
+  batch_size: 256 # best trade off 
+  architecture: 'CNNFCGR'
+  patiente_early_stopping: 15
+  patiente_learning_rate: 10
+  train_size: 0.8
+  optimizer: ranger
+  # choose combinations of loss and activation functions
+  # (loss, output_activation, hidden_activation) triplets will be run as zip() (not all combinations)
+  loss: # categorical_crossentropy binary_crossentropy mean_squared_error 
+    # - triplet_hard_loss
+    - triplet_semihard_loss
+  margin: 1.0
+  hidden_activation: # sigmoid relu softmax 
+    # - leaky_relu 
+    - leaky_relu
+  preprocessing: scale_zero_one # distribution scale_zero_one 
+  seed: 42
+  kfold: 5
+
+outliers:
+  percentil_avg_distance: 95 # [0,100]% 

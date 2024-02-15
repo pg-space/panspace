@@ -307,8 +307,10 @@ def split_data(datadir: Annotated[Path, typer.Option("--datadir","-d", help="pat
         # del labels_by_sampleid
         
     if kfold:
+        print("Cross validation")
         split_cv = CrossValidationSplit(kfolds=kfold)
         paths_by_partition = split_cv(list_paths)
+        print(len(list_paths))
         
         ids_partition = set(paths_by_partition.keys())
         for id_partition, paths_partition in paths_by_partition.items():
@@ -361,6 +363,7 @@ def train_metric_learning(
         epochs: Annotated[int, typer.Option(min=1)] = 2,
         batch_size: Annotated[int, typer.Option(min=1)] = 256,
         loss: Annotated[LossMetricLearning, typer.Option(help="loss function")] = LossMetricLearning.TripletSemiHard.value,
+        margin: Annotated[float, typer.Option(help="margin")] = 1.0, 
         optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
         patiente_early_stopping: Annotated[int, typer.Option()] = 20,
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
@@ -457,14 +460,14 @@ def train_metric_learning(
         factor=0.1,
         patience=PATIENTE_LEARNING_RATE,
         verbose=1,
-        min_lr=0.00001
+        min_lr=0.000001
     )
 
     # stop training if
     cb_earlystop = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        mode='min',
-        min_delta=0.001,
+        mode='auto',
+        # min_delta=0.001,
         patience=PATIENTE_EARLY_STOPPING,
         verbose=1
     )
@@ -482,11 +485,9 @@ def train_metric_learning(
         separator='\t',
         append=False
     )
-    # print(autoencoder.model.summary())
    
     # ---- optimizer ----
     if optimizer.value=="ranger":
-        
         radam = tfa.optimizers.RectifiedAdam()
         ranger = tfa.optimizers.Lookahead(radam, sync_period=6, slow_step_size=0.5)
         optimizer = ranger
@@ -495,9 +496,9 @@ def train_metric_learning(
 
     # ---- loss function ----
     if loss.value == "triplet_hard":
-        loss = tfa.losses.TripletHard(margin=0.01, distance_metric="L2", soft=False)    
-    elif loss.value == "triplet_semihard_loss": 
-        loss = tfa.losses.TripletSemiHardLoss(margin=0.01, distance_metric="L2")
+        loss = tfa.losses.TripletHard(margin=margin, distance_metric="L2", soft=False)    
+    elif loss.value == "triplet_semihard_loss":
+        loss = tfa.losses.TripletSemiHardLoss(margin=margin, distance_metric="L2")
     else:
         loss = tfa.losses.ContrastiveLoss()
 

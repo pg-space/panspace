@@ -58,8 +58,8 @@ rule count_kmers:
     # resources:
         # limit_space=1,
         # disk_mb=20_000_000,
-    priority:
-        100
+    # priority:
+    #     100
     shell:
         """
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t4 -fm {input} {params.out} . 2> {log}
@@ -81,13 +81,14 @@ rule list_path_fasta:
     output: 
         pjoin(OUTDIR, "list_path_kmc_{tarfile}.txt")
     params:
-        log=lambda w: OUTDIR.joinpath(f"logs/list_path_fasta._{w.tarfile}.log"),
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
         fcgrdir=lambda w: pjoin(OUTDIR,"fcgr",f"{w.tarfile}"),
         parent_fcgrdir = lambda w: pjoin(OUTDIR,"fcgr")
+    log:
+        OUTDIR.joinpath("logs/list_path_fasta-{tarfile}.log")
     shell:
         """
-        ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log}
+        /usr/bin/time -v ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log}
         """
 
 
@@ -98,14 +99,18 @@ checkpoint fcgr:
         directory(pjoin(OUTDIR,"fcgr","{tarfile}"))
     params:
         kmer=KMER_SIZE,
-        log=OUTDIR.joinpath("logs/fcgr.log"),
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
         fcgrdir=lambda w: pjoin(OUTDIR,"fcgr",f"{w.tarfile}"),
+        bin_fcgr=config["bin_fcgr"]
+    log:
+        OUTDIR.joinpath("logs/fcgr-{tarfile}.log")
+    priority:
+        100
     conda: 
         "../envs/panspace.yaml"
     shell:
         """
-        /usr/bin/time -v /home/avila/github/fcgr/fcgr {input} 2> {params.log}
+        /usr/bin/time -v {params.bin_fcgr} {input} 2> {log}
         mkdir -p {params.fcgrdir} 
         mv {params.kmerdir}/*.npy {params.fcgrdir}
         """
@@ -124,10 +129,9 @@ rule fake_aggregate:
         aggregate_numpy_fcgr
     output: 
         touch( pjoin(OUTDIR, "{tarfile}_aggregate.flag"))
-    # priority:
-    #     200
+    priority:
+        200
     params:     
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.tarfile}"),
-
     shell:
         "rm -r {params.kmerdir}"

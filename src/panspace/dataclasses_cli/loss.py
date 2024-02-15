@@ -8,4 +8,4 @@ class LossAutoencoder(str, Enum):
 class LossMetricLearning(str,Enum):
     Contrastive="contrastive_loss"
     TripletSemiHard="triplet_semihard_loss"
-    TripletHard="tripler_hard_loss"
+    TripletHard="triplet_hard_loss"
