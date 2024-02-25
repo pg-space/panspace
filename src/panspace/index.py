@@ -18,6 +18,7 @@ def create_index(
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
+        kmer_size: Annotated[int, typer.Option(min=1)] = 6,
         ) -> None:
     import json
     import faiss
@@ -67,7 +68,8 @@ def create_index(
         batch_size=batch_size,
         shuffle=False,
         preprocessing=preprocessing,
-        inference_mode=True
+        inference_mode=True,
+        kmer_size=kmer_size,
     )
 
     # embeddings train+val
