@@ -9,8 +9,8 @@ extract Encoder and Decoder from a trained model, and create and query an Index
 of embeddings.
  
 ```bash
-git clone git@github.com:jorgeavilacartes/embedding-bacteria.git
-cd embedding-bacteria
+git clone git@github.com:pg-space/panspace.git
+cd panspace
 
 mamba env create -n panspace -f condaenv.yaml
 mamba activate panspace

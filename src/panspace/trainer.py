@@ -146,7 +146,8 @@ def train_autoencoder(
         list_paths=list_train,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        preprocessing=preprocessing
+        preprocessing=preprocessing,
+        kmer_size=KMER,
     )
 
     # dataset validation
@@ -154,7 +155,8 @@ def train_autoencoder(
         list_paths=list_val,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        preprocessing=preprocessing
+        preprocessing=preprocessing,
+        kmer_size=KMER,
     )
 
     # - Callbacks: actions that are triggered at the end of each epoch
@@ -447,9 +449,15 @@ def train_metric_learning(
         optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
         patiente_early_stopping: Annotated[int, typer.Option()] = 20,
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
-        train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8,
-        seed: Annotated[int, typer.Option(help= "to reproduce split of dataset")] = 42,
+        train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8, 
         ) -> None:
+    
+    """
+    If only 'training_list' is provided, the 'train_size' percent of that list will be used as training set, and the '1-train_size' percent will be used as validation.
+    If 'validation_list' is provided, 'train_size' is ignored
+    """
+    
+    
     print(f"Training neural network of type: {architecture.value}")
 
     # assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
@@ -509,7 +517,8 @@ def train_metric_learning(
         list_labels=labels_train,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        preprocessing=preprocessing
+        preprocessing=preprocessing,
+        kmer_size=KMER,
     )
 
     # dataset validation
@@ -518,12 +527,14 @@ def train_metric_learning(
         list_labels=labels_val,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        preprocessing=preprocessing
+        preprocessing=preprocessing,
+        kmer_size=KMER,
     )
 
     # - Callbacks: actions that are triggered at the end of each epoch
     # checkpoint: save best weights
     Path(f"{PATH_TRAIN}/checkpoints").mkdir(exist_ok=True, parents=True)
+    # TODO: save only weights
     cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{PATH_TRAIN}/checkpoints/weights-{ARCHITECTURE}.keras',
         monitor='val_loss',
