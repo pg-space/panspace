@@ -1,8 +1,0 @@
-name: gambit
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  # - python>=3.12
-  - gambit

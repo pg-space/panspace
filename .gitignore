@@ -9,6 +9,7 @@ build
 dist
 *.spec
 *.err
+src/*egg-info
 
 # data
 data/
