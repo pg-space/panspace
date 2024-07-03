@@ -1,5 +1,5 @@
-typer[all]
-tensorflow[and-cuda]
+typer
+tensorflow==2.15.0
 faiss-gpu
 scikit-learn
 cleanlab

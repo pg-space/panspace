@@ -10,8 +10,8 @@ Classifier: Intended Audience :: Bioinformaticians
 Classifier: Programming Language :: Python
 Requires-Python: <=3.11,>=3.9
 License-File: LICENSE
-Requires-Dist: typer[all]
-Requires-Dist: tensorflow[and-cuda]
+Requires-Dist: typer
+Requires-Dist: tensorflow==2.15.0
 Requires-Dist: faiss-gpu
 Requires-Dist: scikit-learn
 Requires-Dist: cleanlab

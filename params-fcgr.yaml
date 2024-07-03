@@ -1,6 +1,0 @@
-kmer_size: 8
-outdir: /data/bacteria/experiments/boosted-fcgr
-bin_fcgr: /home/avila/github/fcgr/fcgr
-
-fcgr:
-  dir_tarfiles: /data/bacteria/datasets/661k-bacteria #   /data/bacteria/subsample-dataset/small 

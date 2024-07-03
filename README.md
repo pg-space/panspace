@@ -16,64 +16,33 @@ mamba env create -n panspace -f condaenv.yaml
 mamba activate panspace
 
 panspace --help 
-```
-___
 
-
-## 0. Download dataset
-run the following script to download all compressed file from the [661k-bacterial dataset](https://zenodo.org/records/4602622/).
-```bash
-./scripts/download.sh
-```
-___ 
-Create virtual environment for snakemake (each rule has its own environment, see `envs`)
-
-```bash
-mamba env create -n snakemake -f envs/smk.yaml
-mamba activate snakemake
-```
-
-## 1. Generate FCGR
-
-This pipeline count kmers using [`kmc`](https://github.com/refresh-bio/KMC) and then creates a `npy` file with the [FCGR](https://github.com/AlgoLab/complexCGR)
-
-To create FCGR from all 661k bacterial dataset, run
-```bash
-snakemake -s rules/create_fcgr_tarxz.smk -c16 --use-conda
-```
-In the bacterial dataset input files are like `<some-name>.tar.xz`, where each compressed file contains a foder named `<some-name>/<assembly-id>.fa`
-this pipeline assumes that assemblies follow this.
-
-If you have a set of fasta files, you can use
-
-```bash
-snakemake -s rules/create_fcgr_fasta.smk -c16 --use-conda
+Usage: panspace [OPTIONS] COMMAND [ARGS]...                                                                               
+                                                                                                                           
+ 🐱 Welcome to panspace, a tool for Indexing and Querying a pan-genome in an embedding space                               
+                                                                                                                           
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                                 │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.          │
+│ --help                        Show this message and exit.                                                               │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ data-curation    Find outliers and mislabaled samples.                                                                  │
+│ docs             Open documentation webpage.                                                                            │
+│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.                                   │
+│ index            Create and query index. Utilities to test index.                                                       │
+│ stats-assembly   N50, number of contigs, avg length, total length.                                                      │
+│ trainer          Train Autoencoder/Metric Learning. Utilities.                                                          │
+│ utils            Extract info from text or log files                                                                    │
+│ what-to-do       🐱 If you are new here, check this step-by-step guide                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-*EXTENSIONS ACCEPTED*: `.fa` , `.fna`, `.fasta`
 
 
-## 2. Train Autoencoder and create index
+## 1. Train Autoencoder and create index
 
-```bash
-snakemake -s rules/create_index.smk -c16 --use-conda --resources nvidia_gpu=1
-```
-
-## 3. Query index
-In `params-query.yaml`, define the following parameters:
-
-```yaml 
-query:
-  dir_fasta: "/data/bacteria/test-query" # all fasta files inside the folder will be used to query the index
-  outdir: "output-query"
-```
-
-and then run
-
-```bash
-snakemake -s rules/query_index.smk -c16 --use-conda --resources nvidia_gpu=1
-```
-
+## 2. Query index
 
 ___
 # Author
