@@ -80,7 +80,7 @@ def preds_confident_learning(
     path_train_embeddings: Annotated[Path, typer.Option("--path-train-embeddings", help="path to .npy file with embeddings.")],
     path_train_labels: Annotated[Path, typer.Option("--path-train-labels", help="path to txt file with path and labels.")],
     path_test_embeddings: Annotated[Path, typer.Option("--path-test-embeddings", help="path to .npy file with embeddings.")],
-    path_test_labels: Annotated[Path, typer.Option("--path-train-embeddings", help="path to txt file with path and labels.")],
+    path_test_labels: Annotated[Path, typer.Option("--path-test-labels", help="path to txt file with path and labels.")],
     outdir: Annotated[Path, typer.Option("--outdir","-o", help="output directory to save results")],
     order_labels: Annotated[Path, typer.Option("--order-labels","-ol", help="txt file with all unique labels, one label per row")] = None,
     ):
