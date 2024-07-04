@@ -127,8 +127,7 @@ def preds_confident_learning(
 
 @app.command("utils-join-npy")
 def join_npy(
-    files: List[Path],#Annotated[List[Path], typer.Option("--pred-scores", help="path to .npy file with predicted scores.")], 
-    # labels: Annotated[Path, typer.Option("--path-predictions", help="path to csv file with predicted labels.")]=None,
+    files: List[Path], 
     path_save: Annotated[Path, typer.Option("--path-save", "-o", help="output file")]="output-test.npy"
     ):
 
@@ -144,13 +143,28 @@ def join_npy(
     np.save(file=path_save, arr=array)
 
 
+@app.command("utils-join-df")
+def join_df(
+    files: List[Path],
+    path_save: Annotated[Path, typer.Option("--path-save", "-o", help="output file")]="output-test.csv"
+    ):
+
+    import pandas as pd
+    from pathlib import Path
+
+    path_save = Path(path_save)
+    path_save.parent.mkdir(exist_ok=True, parents=True)
+
+    df = pd.concat([ pd.read_csv(path, index_col=False) for path in files ], axis=0)
+    console.print(df.shape)
+    df.to_csv(path_save, index=False)
+
 
 @app.command("confident-learning", help="Identify mislabeled data from predicted scores")
 def confident_learning(
-    # pred_scores: List[Path],#Annotated[List[Path], typer.Option("--pred-scores", help="path to .npy file with predicted scores.")], 
     pred_scores: Annotated[Path, typer.Option("--path-pred-scores", help="path to npy with predicted scores.")]=None,
     labels: Annotated[Path, typer.Option("--path-labels", help="path to npy file with labels (numeric).")]=None,
-    outdir: Annotated[Path, typer.Option("--outdir", "-o", help="outdir")]="output-test"
+    outdir: Annotated[Path, typer.Option("--outdir", "-o", help="output directory to save results with potential mislabeled assemblies")]="output-test"
     ):
 
     import numpy as np
