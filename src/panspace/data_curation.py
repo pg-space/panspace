@@ -1,6 +1,7 @@
 import typer 
 from typing_extensions import Annotated
 from pathlib import Path 
+from typing import List
 
 from rich.progress import track
 from rich import print 
@@ -79,7 +80,7 @@ def preds_confident_learning(
     path_train_embeddings: Annotated[Path, typer.Option("--path-train-embeddings", help="path to .npy file with embeddings.")],
     path_train_labels: Annotated[Path, typer.Option("--path-train-labels", help="path to .json file with labels.")],
     path_test_embeddings: Annotated[Path, typer.Option("--path-test-embeddings", help="path to .npy file with embeddings.")],
-    # path_test_labels: Annotated[Path, typer.Option("--path-train-embeddings", help="path to .npy file with embeddings.")],
+    path_test_labels: Annotated[Path, typer.Option("--path-train-embeddings", help="path to .npy file with embeddings.")],
     outdir: Annotated[Path, typer.Option("--outdir","-o", help="output directory to save results")],
     order_labels: Annotated[Path, typer.Option("--order-labels","-ol", help="txt file with all unique labels, one label per row")] = None,
     ):
@@ -106,18 +107,62 @@ def preds_confident_learning(
     else:
         dict_labels = {label: idx for idx, label in enumerate(unique_labels)}
     X_test = np.load(path_test_embeddings) 
-    with open(path_train_labels) as fp:
+    with open(path_test_labels) as fp:
         y_test = json.load(fp)
         y_test = pd.Series(y_test, name="label")
 
-    labels_test = [dict_labels[label] for label in y_test]
+    labels_test = np.array([dict_labels[label] for label in y_test])
 
     clf = LogisticRegression(random_state=42).fit(X_train, y_train)
 
     pred_probs = clf.predict_proba(X_test)
     np.save(file=outdir.joinpath("pred_probs.npy"), arr=pred_probs)
+    np.save(file=outdir.joinpath("labels.npy"), arr=labels_test)
+
+    # labels_test.to_csv(outdir.joinpath("labels.csv"))
+
+
+@app.command("utils-join-npy")
+def join_npy(
+    files: List[Path],#Annotated[List[Path], typer.Option("--pred-scores", help="path to .npy file with predicted scores.")], 
+    # labels: Annotated[Path, typer.Option("--path-predictions", help="path to csv file with predicted labels.")]=None,
+    path_save: Annotated[Path, typer.Option("--path-save", "-o", help="output file")]="output-test.npy"
+    ):
+
+    import numpy as np
+    import pandas as pd
+    from pathlib import Path
+
+    path_save = Path(path_save)
+    path_save.parent.mkdir(exist_ok=True, parents=True)
+
+    array = np.concatenate([ np.load(path) for path in files ], axis=0)
+    console.print(array.shape)
+    np.save(file=path_save, arr=array)
+
 
 
 @app.command("confident-learning", help="Identify mislabeled data from predicted scores")
-def confident_learning(pred_scores, labels):
-    pass
+def confident_learning(
+    # pred_scores: List[Path],#Annotated[List[Path], typer.Option("--pred-scores", help="path to .npy file with predicted scores.")], 
+    pred_scores: Annotated[Path, typer.Option("--path-pred-scores", help="path to npy with predicted scores.")]=None,
+    labels: Annotated[Path, typer.Option("--path-labels", help="path to npy file with labels (numeric).")]=None,
+    outdir: Annotated[Path, typer.Option("--outdir", "-o", help="outdir")]="output-test"
+    ):
+
+    import numpy as np
+    import pandas as pd
+    from pathlib import Path
+    
+    from cleanlab.filter import find_label_issues
+
+    outdir = Path(outdir)
+    outdir.mkdir(exist_ok=True, parents=True)
+
+    label_issues = find_label_issues(
+        labels=np.load(labels),
+        pred_probs= np.load(pred_scores),
+    )
+
+    np.save(file=outdir.joinpath("label_issues.npy"), arr=label_issues)
+
