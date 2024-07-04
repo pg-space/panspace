@@ -99,7 +99,7 @@ def preds_confident_learning(
     y_train = []
     with open(path_train_labels) as fp:
         for line in fp.readlines():
-            path, label = line.split("\t")[-1]
+            label = line.strip().split("\t")[-1]
             y_train.append(label)
 
     if order_labels is None:
@@ -113,7 +113,7 @@ def preds_confident_learning(
     y_test = []
     with open(path_test_labels) as fp:
         for line in fp.readlines():
-            path, label = line.split("\t")[-1]
+            label = line.strip().split("\t")[-1]
             y_test.append(label)
 
     labels_test = np.array([dict_labels[label] for label in y_test])
