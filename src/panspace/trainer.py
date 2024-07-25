@@ -68,6 +68,10 @@ def train_autoencoder(
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.utils.split_data import TrainValTestSplit
 
+    print(tf.config.list_physical_devices('GPU'))
+    # tf.debugging.set_log_device_placement(True)
+
+
     assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
     
     KMER=kmer
@@ -147,6 +151,8 @@ def train_autoencoder(
         batch_size=BATCH_SIZE,
         shuffle=True,
         preprocessing=preprocessing,
+        inference_mode = False,
+        reshape = True,
         kmer_size=KMER,
     )
 
@@ -156,6 +162,8 @@ def train_autoencoder(
         batch_size=BATCH_SIZE,
         shuffle=False,
         preprocessing=preprocessing,
+        inference_mode = False,
+        reshape = True,
         kmer_size=KMER,
     )
 
@@ -231,7 +239,8 @@ def train_autoencoder(
             cb_earlystop,
             cb_csvlogger,
             cb_csvtime
-            ]
+            ],
+        workers=8, use_multiprocessing=True, max_queue_size=256
     )
 
 @app.command("split-autoencoder",help="Save Encoder and Decoder as separated models.",)
@@ -613,5 +622,6 @@ def train_metric_learning(
             cb_earlystop,
             cb_csvlogger,
             cb_csvtime
-            ]
+            ],
+        workers=8, use_multiprocessing=True, max_queue_size=256
     )
