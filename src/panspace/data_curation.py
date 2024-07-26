@@ -88,41 +88,126 @@ def preds_confident_learning(
     import json
     import numpy as np 
     import pandas as pd 
+    import tensorflow as tf
 
     from cleanlab.filter import find_label_issues
     from sklearn.linear_model import LogisticRegression
+
+    from .dnn.callbacks import CSVTimeHistory
     
     outdir = Path(outdir)
     outdir.mkdir(exist_ok=True, parents=True)
 
     X_train = np.load(path_train_embeddings) 
-    y_train = []
+    labels_train = []
     with open(path_train_labels) as fp:
         for line in fp.readlines():
             label = line.strip().split("\t")[-1]
-            y_train.append(label)
+            labels_train.append(label)
+
+    labels_test = []
+    with open(path_test_labels) as fp:
+        for line in fp.readlines():
+            label = line.strip().split("\t")[-1]
+            labels_test.append(label)
 
     if order_labels is None:
-        unique_labels = list(set(y_train))
+        unique_labels = list(set(labels_train).union(labels_test))
         unique_labels.sort()
         dict_labels = {label: idx for idx, label in enumerate(unique_labels)}
     else:
         dict_labels = {label: idx for idx, label in enumerate(unique_labels)}
     
+    y_train = np.array([dict_labels[label] for label in labels_train])
+    
+
+    # # # #
+    # clf = LogisticRegression(random_state=42).fit(X_train, y_train)
+    # Model parameters
+    num_classes = len(unique_labels)
+    input_shape = (X_train.shape[1],)
+
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(shape=input_shape),
+            tf.keras.layers.Dense(64, activation="relu"),
+            tf.keras.layers.Dense(32, activation="relu"),
+            tf.keras.layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
+
+    model.compile(
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        metrics=[
+            tf.keras.metrics.SparseCategoricalAccuracy(name="acc"),
+        ],
+    )
+
+    Path(f"{outdir}/checkpoints").mkdir(exist_ok=True, parents=True)
+    cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        filepath=f'{outdir}/checkpoints/weights-mlp.keras',
+        monitor='val_loss',
+        mode='min',
+        save_best_only=True,
+        verbose=1
+    )
+
+    cb_reducelr = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        mode='min',
+        factor=0.1,
+        patience=20,
+        verbose=1,
+        min_lr=0.00001
+    )
+
+
+    # stop training if
+    cb_earlystop = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        mode='min',
+        min_delta=0.001,
+        patience=50,
+        verbose=1
+    )
+    # save history of training
+    cb_csvlogger = tf.keras.callbacks.CSVLogger(
+        filename=f'{outdir}/training_log.csv',
+        separator='\t',
+        append=False
+    )
+
+    # save time by epoch
+    cb_csvtime = CSVTimeHistory(
+        filename=f'{outdir}/time_log.csv',
+        separator='\t',
+        append=False
+    )
+
+    callbacks = [
+        cb_checkpoint,
+        cb_reducelr,
+        cb_earlystop,
+        cb_csvlogger,
+        cb_csvtime,
+    ]
+
+    model.fit(
+        X_train,
+        y_train,
+        batch_size=256,
+        epochs=200,
+        validation_split=0.2,
+        callbacks=callbacks,
+    )
+
+    # get prediction on test set
     X_test = np.load(path_test_embeddings) 
-    y_test = []
-    with open(path_test_labels) as fp:
-        for line in fp.readlines():
-            label = line.strip().split("\t")[-1]
-            y_test.append(label)
-
-    labels_test = np.array([dict_labels[label] for label in y_test])
-
-    clf = LogisticRegression(random_state=42).fit(X_train, y_train)
-
-    pred_probs = clf.predict_proba(X_test)
+    y_test = np.array([dict_labels[label] for label in labels_test])
+    pred_probs = model.predict(X_test)
     np.save(file=outdir.joinpath("pred_probs.npy"), arr=pred_probs)
-    np.save(file=outdir.joinpath("labels.npy"), arr=labels_test)
+    np.save(file=outdir.joinpath("labels.npy"), arr=y_test)
 
 
 @app.command("utils-join-npy")
