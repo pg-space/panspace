@@ -268,3 +268,122 @@ def confident_learning(
 
     np.save(file=outdir.joinpath("label_issues.npy"), arr=label_issues)
 
+
+@app.command("utils-ani")
+def utils_ani(path_cv, 
+              path_most_abundant,
+              path_reference_by_accession,
+              path_metadata_references,
+              ):
+    
+    from pathlib import Path
+    import numpy as np
+    import pandas as pd
+
+    from collections import defaultdict
+
+    path_cv = Path(path_cv)
+
+    kfold_test = list( path_cv.glob("test*") )
+    kfold_test.sort()
+
+    paths_fcgr = []
+    labels = []
+
+    for kfold in kfold_test:
+
+        with open(kfold) as fp:
+            for line in fp.readlines():
+                path_fcgr, label = line.strip().split("\t")
+
+                # if path_fcgr not in df_outliers.path:
+                labels.append(label)
+                paths_fcgr.append(path_fcgr)
+
+    df_labels = pd.DataFrame({
+        "path_fcgr": paths_fcgr,
+        "label": labels
+    })
+    df_labels["sample_id"] = df_labels.path_fcgr.apply(lambda s: Path(s).stem)
+    df_labels["tarfile"] = df_labels.path_fcgr.apply(lambda s: Path(s).parent.stem)
+    df_labels.head()
+
+    # get mapping integer label -> species label
+    unique_labels = list(df_labels.label.unique())
+    unique_labels.sort()
+    dict_int2label = {idx: label for idx, label in enumerate(unique_labels)}
+
+    # label issues
+    path_cf = path_cv.joinpath("confident-learning")
+    int_labels = np.load( path_cf.joinpath("labels.npy") )  # integer labels
+    labels = [dict_int2label[int(x)] for x in int_labels]   # species name labels
+    len(labels)
+
+    pred_probs = np.load( path_cf.joinpath("pred_probs.npy") )
+    preds = [dict_int2label[int(x)] for x in pred_probs.argmax(axis=1) ]
+    df_labels["pred"] = preds
+    len(preds)
+
+    label_issues = np.load( path_cf.joinpath("label_issues.npy") ) 
+    df_labels_issues = df_labels.loc[label_issues].copy()
+    df_labels_issues
+
+    # Compare against most abundant species
+    df_most_abundant = pd.read_csv(path_most_abundant,sep="\t")
+    df_most_abundant.rename({
+        "V2": "species1",
+        "V3": "abundancy1",
+        "V4": "species2",
+        "V5": "abundancy2",
+        "V6": "species3",
+        "V7": "abundancy3",
+    }, inplace=True, axis=1)
+
+    for feat in ["species1","species2","species3"]:
+        df_most_abundant[feat] = df_most_abundant[feat].apply(lambda x: str(x).lower().strip().replace(" ","_"))
+
+    issues = pd.merge(left=df_labels_issues, right=df_most_abundant ,how="left", on="sample_id")
+
+    path_references = pd.read_csv(path_reference_by_accession, sep=" ", header=None)
+    path_references.rename({0:"Assembly Accession", 1:"path"}, inplace=True, axis=1)
+    metadata_references = pd.read_csv(path_metadata_references, sep="\t")
+    df_references = pd.merge(metadata_references, path_references, on="Assembly Accession")
+    
+    label2refpath = {l:p for l,p in zip(df_references.label, df_references.path)}
+
+    # For each sequence with label issue, create a txt file with 4 rows:
+    # - path to reference of the prediction
+    # - path to reference of the most abundant species (ground truth label)
+    # - path to reference of the second most abundant species
+    # - path to reference of the third most abundant species
+    path_save = path_cv.joinpath("confident-learning/lists-ANI")
+    path_save.mkdir(exist_ok=True, parents=True)
+
+    for d in issues.to_dict("records"):
+        
+        with open(path_save.joinpath(f"{d['sample_id']}.txt"), "w") as fp:
+            for l in ["pred","species1","species2","species3"]:
+                path = label2refpath.get(d[l])
+                if path:
+                    fp.write(path)
+                    fp.write("\n")
+
+
+    fastas_by_tarfile = defaultdict(list)
+    for tarfile, sample_id in zip(issues.tarfile, issues.sample_id):
+        fastas_by_tarfile[tarfile].append(
+                                        f"{tarfile}/{sample_id}.fa"
+                                        )
+
+    path_save = path_cv.joinpath("confident-learning/lists-by-tar")
+    path_save.mkdir(exist_ok=True, parents=True)
+
+    for tarfile, list_files in fastas_by_tarfile.items():
+        
+        with open(path_save.joinpath(f"{tarfile}.txt"), "w") as fp:
+            
+            for l in list_files:
+                fp.write(l)
+                fp.write("\n")
+
+    issues.to_csv(path_cv.joinpath("confident-learning/metadata_issues.tsv"), sep="\t")
