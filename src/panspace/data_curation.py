@@ -359,21 +359,31 @@ def utils_ani(path_cv,
     path_save = path_cv.joinpath("confident-learning/lists-ANI")
     path_save.mkdir(exist_ok=True, parents=True)
 
+    fastas_by_tarfile = defaultdict(list)
     for d in issues.to_dict("records"):
-        
-        with open(path_save.joinpath(f"{d['sample_id']}.txt"), "w") as fp:
-            for l in ["pred","species1","species2","species3"]:
-                path = label2refpath.get(d[l])
-                if path:
+
+        ref_paths=[]
+        for l in ["pred","species1"]:#,"species2","species3"]:
+            path = label2refpath.get(d[l])
+            if path:
+                ref_paths.append(path)
+
+        if len(ref_paths)>1:
+            with open(path_save.joinpath(f"{d['sample_id']}.txt"), "w") as fp:
+                for path in ref_paths:
                     fp.write(path)
                     fp.write("\n")
 
+            tarfile=d["tarfile"]
+            sample_id=d["sample_id"]
+            fastas_by_tarfile[tarfile].append(f"{tarfile}/{sample_id}.fa")
+            
 
-    fastas_by_tarfile = defaultdict(list)
-    for tarfile, sample_id in zip(issues.tarfile, issues.sample_id):
-        fastas_by_tarfile[tarfile].append(
-                                        f"{tarfile}/{sample_id}.fa"
-                                        )
+    # # fastas_by_tarfile = defaultdict(list)
+    # for tarfile, sample_id in zip(issues.tarfile, issues.sample_id):
+    #     fastas_by_tarfile[tarfile].append(
+    #                                     f"{tarfile}/{sample_id}.fa"
+    #                                     )
 
     path_save = path_cv.joinpath("confident-learning/lists-by-tar")
     path_save.mkdir(exist_ok=True, parents=True)
@@ -387,3 +397,46 @@ def utils_ani(path_cv,
                 fp.write("\n")
 
     issues.to_csv(path_cv.joinpath("confident-learning/metadata_issues.tsv"), sep="\t")
+
+@app.command("consolidate-ani")
+def consolidate_ani(path_cv,
+                    path_reference_by_accession,
+                    path_metadata_references):
+
+    from pathlib import Path
+    import pandas as pd
+
+    not_empty=[]
+    for path in Path(path_cv).joinpath("confident-learning/ani-results").glob("*txt"):
+        
+        with open(path,"r") as fp:
+            x=fp.read()
+
+        if x:
+            not_empty.append(pd.read_csv(path,sep="\t", header=None))
+
+    df = pd.concat(not_empty, axis=0, ignore_index=True)
+    df.rename({0:"path_ebi",
+           1:"path_ref",
+           2:"ani",
+           }, axis=1, inplace=True)
+
+
+    path_references = pd.read_csv(path_reference_by_accession, sep=" ", header=None)
+    path_references.rename({0:"Assembly Accession", 1:"path"}, inplace=True, axis=1)
+    metadata_references = pd.read_csv(path_metadata_references, sep="\t")
+    df_references = pd.merge(metadata_references, path_references, on="Assembly Accession")
+
+    # create dictionary to map label to the reference path
+    label2refpath = {l:p for l,p in zip(df_references.label, df_references.path)}
+    refpath2label = {p:l for l,p in zip(df_references.label, df_references.path)}
+
+    metadata_issues = pd.read_csv(Path(path_cv).joinpath("confident-learning/metadata_issues.tsv"), sep="\t")
+
+    sampleid2label = {sid: l for sid, l in zip(metadata_issues.sample_id, metadata_issues.label)}
+
+    df["label_ref"] = df["path_ref"].apply(lambda p: refpath2label[p])
+    df["sample_id"] =df["path_ebi"].apply(lambda p: Path(p).stem)
+    df["label_ebi"] =df["sample_id"].apply(lambda sid: sampleid2label[sid])
+
+    df.to_csv(Path(path_cv).joinpath("confident-learning/ani.tsv"),sep="\t")
