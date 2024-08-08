@@ -440,3 +440,29 @@ def consolidate_ani(path_cv,
     df["label_ebi"] =df["sample_id"].apply(lambda sid: sampleid2label[sid])
 
     df.to_csv(Path(path_cv).joinpath("confident-learning/ani.tsv"),sep="\t")
+
+@app.command("counts-ani")
+def counts_ani(path_ani):
+
+    import json
+    import pandas as pd 
+    dirsave = Path(path_ani).parent
+    df_ani = pd.read_csv(path_ani, sep="\t")
+
+    change_label = df_ani.query("label_ref != label_ebi and ani>=95")
+    
+    counts = change_label.groupby(by=["label_ebi"]).size().reset_index()
+    counts.sort_values(by=0, ascending=False, inplace=True, ignore_index=True)
+    counts.to_csv(dirsave.joinpath("ani-stats-label.tsv"),sep="\t")
+
+    counts_2 = change_label.groupby(by=["label_ebi","label_ref"]).size().reset_index()
+    counts_2.sort_values(by=0, ascending=False, inplace=True, ignore_index=True)
+    counts_2.to_csv(dirsave.joinpath("ani-stats-pairs.tsv"), sep="\t")
+
+    summary = dict()
+    summary["change-label"] = change_label.shape[0]
+    summary["correct-label"] = df_ani.query("label_ref == label_ebi and ani>=95").shape[0]
+    summary["inconclusive"] = df_ani.query("ani<95").shape[0]
+
+    with open(dirsave.joinpath("ani-stats-summary.json"),"w") as fp:
+        json.dump(summary, fp)
