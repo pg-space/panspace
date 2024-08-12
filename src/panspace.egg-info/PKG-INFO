@@ -10,14 +10,14 @@ Classifier: Intended Audience :: Bioinformaticians
 Classifier: Programming Language :: Python
 Requires-Python: <=3.11,>=3.9
 License-File: LICENSE
-Requires-Dist: typer
-Requires-Dist: tensorflow==2.15.0
-Requires-Dist: faiss-gpu
-Requires-Dist: scikit-learn
-Requires-Dist: cleanlab
-Requires-Dist: complexcgr
-Requires-Dist: pandas
-Requires-Dist: rich
-Requires-Dist: rich-argparse
-Requires-Dist: tqdm
-Requires-Dist: tensorflow-addons
+Requires-Dist: typer[all]==0.12.3
+Requires-Dist: tensorflow[and-cuda]==2.15.1
+Requires-Dist: faiss-gpu==1.7.2
+Requires-Dist: scikit-learn==1.3.2
+Requires-Dist: cleanlab==2.5.0
+Requires-Dist: complexcgr==0.8.0
+Requires-Dist: pandas==2.1.4
+Requires-Dist: rich==13.7.0
+Requires-Dist: rich-argparse==1.4.0
+Requires-Dist: tqdm==4.66.1
+Requires-Dist: tensorflow-addons==0.23.0

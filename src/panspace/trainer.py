@@ -291,7 +291,7 @@ def split_dataset_cross_validation(
             datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
             outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
             kfold: Annotated[int, typer.Option("--kfold","-k", help="If provided, the .npy files in datadir will be split in k-folds for cross-validation.", min=1)] = 5,
-            path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the prefix of the filename (eg. path/to/<prefix>.fa) and second column is the label (tab separated)")] = None,
+            path_labels: Annotated[Path, typer.Option("--labels", mode="r", help=".txt file where the first column is the sampleid and second column is the label (tab separated)")] = None,
             seed: Annotated[int, typer.Option("--seed", "-s", help= "to reproduce split of dataset")] = 42,
             ):
     

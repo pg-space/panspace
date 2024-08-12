@@ -466,3 +466,49 @@ def counts_ani(path_ani):
 
     with open(dirsave.joinpath("ani-stats-summary.json"),"w") as fp:
         json.dump(summary, fp)
+
+
+@app.command("remove-outliers-fix-labels")
+def remove_outliers_fix_labels(dir_fcgr, path_outliers, path_ani, path_labels, path_save):
+
+    import pandas as pd
+    from pathlib import Path
+
+    list_all = [str(p) for p in Path(dir_fcgr).rglob("*npy")]
+
+
+    # filter outliers
+    df_outliers = pd.read_csv(path_outliers, sep="\t")
+    outliers = df_outliers.path.tolist()
+
+    list_no_outliers = list(set(list_all)-set(outliers))
+
+    # fix labels
+    labels_by_sampleid = dict()
+    with open(path_labels, "r") as fp:
+        for line in fp.readlines():
+            try:
+                # TODO: any better way to standarize the label? could change for other experiments
+                sample_id, label = line.replace("\n","").strip().split("\t")
+                sample_id = sample_id.strip()
+                label = "_".join(label.lower().strip().split(" "))
+                labels_by_sampleid[sample_id] = label
+            except:
+                continue
+
+    # update modified labels
+    ani = pd.read_csv(path_ani, sep="\t")
+    for d in ani.query("ani >= 95.0").to_dict("records"):
+        new_label = d["label_ref"]
+        sample_id = d["sample_id"]
+        labels_by_sampleid[sample_id] = new_label
+
+    Path(path_save).parent.mkdir(exist_ok=True, parents=True)
+    with open(path_save, "w") as fp:
+        for path in list_no_outliers:
+            try:
+                sample_id = Path(path).stem
+                label = labels_by_sampleid[sample_id]
+                fp.write(f"{path}\t{label}\n")
+            except:
+                continue
