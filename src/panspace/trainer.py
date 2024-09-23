@@ -511,8 +511,12 @@ def train_metric_learning(
                 list_paths.append(path)
                 list_labels.append(label)
 
+    import random
     N_paths = len(list_paths)
     pos_cut = int(N_paths*TRAIN_SIZE)
+    temp = list(zip(list_paths, list_labels))
+    random.shuffle(temp)
+    list_paths, list_labels = zip(*temp)
     list_train = list_paths[:pos_cut]
     labels_train = list_labels[:pos_cut]
     list_val   = list_paths[pos_cut:]
@@ -594,8 +598,8 @@ def train_metric_learning(
         optimizer=optimizer.value
 
     # ---- loss function ----
-    if loss.value == "triplet_hard":
-        loss = tfa.losses.TripletHard(margin=margin, distance_metric="L2", soft=False)    
+    if loss.value == "triplet_hard_loss":
+        loss = tfa.losses.TripletHardLoss(margin=margin, distance_metric="L2", soft=False)    
     elif loss.value == "triplet_semihard_loss":
         loss = tfa.losses.TripletSemiHardLoss(margin=margin, distance_metric="L2")
     else:
