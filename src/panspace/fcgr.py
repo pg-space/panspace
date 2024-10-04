@@ -17,6 +17,31 @@ console=Console()
 app = typer.Typer(rich_markup_mode="rich",
     help="Create FCGRs from fasta file or from txt file with kmers and counts.")
 
+
+@app.command("fcgr2image", help="Save FCGR as image from npy file.")
+def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="r", help="path to .txt file with paths to npy <folder>/<species>/<sampleid>.npy")],
+               dir_save: Annotated[Path, typer.Option("--dir-save", "-d", mode="w", help="directory where .jpeg images will be saved")],
+               kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
+    
+    import numpy as np
+    from complexcgr import FCGR
+    
+    dir_save = Path(dir_save)
+    fcgr = FCGR(kmer)
+    
+    paths = []
+    with open(list_npy, "r") as fp:
+        for line in fp.readlines():
+            paths.append(line.replace("\n").strip())
+
+    for idx, path_npy in track(paths):
+        m = np.load(path_npy)
+        sampleid = Path(path_npy).stem
+        batch = Path(path_npy).parent
+        path_save = dir_save.joinpath(f"{kmer}mer/{batch}/{sampleid}.jpeg")
+        Path(path_save).parent.mkdir(exist_ok=True,parents=True)
+        fcgr.save_img(m, path_save)
+
 @app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
 def create_fcgr_kmc(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
@@ -126,3 +151,4 @@ def display_images(
         Path(path_save).parent.mkdir(exist_ok=True, parents=True)
         fig.savefig(path_save, dpi=300)
     plt.close(fig)
+
