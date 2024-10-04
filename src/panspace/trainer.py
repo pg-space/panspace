@@ -29,7 +29,7 @@ console=Console()
 app = typer.Typer(rich_markup_mode="rich",
     help="Train Autoencoder/Metric Learning. Utilities.")
 
-@app.command("train-autoencoder", help="Train an autoencoder.")
+@app.command("autoencoder", help="Train an autoencoder.")
 def train_autoencoder(
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")],
         datadir: Annotated[Path, typer.Option(help="directory where FCGR with numpy files are stored. If None, training_list will be used")] = None,
@@ -441,7 +441,7 @@ def split_dataset(
     
     print("finished")
 
-@app.command("train-metric-learning", help="Create embedding using labels in training")
+@app.command("metric-learning", help="Create embedding using labels in training")
 def train_metric_learning(
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         validation_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
@@ -451,7 +451,7 @@ def train_metric_learning(
         latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 128, 
         hidden_activation: Annotated[Activation,typer.Option(help="activation function for hidden layers")]=Activation.Relu.value,
         batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR")]=False,
-        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.Distribution.value,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
         epochs: Annotated[int, typer.Option(min=1)] = 2,
         batch_size: Annotated[int, typer.Option(min=1)] = 256,
         loss: Annotated[LossMetricLearning, typer.Option(help="loss function")] = LossMetricLearning.TripletSemiHard.value,
@@ -459,14 +459,15 @@ def train_metric_learning(
         optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
         patiente_early_stopping: Annotated[int, typer.Option()] = 20,
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
-        # train_size: Annotated[float, typer.Option(min=0.01, max=0.99)] = 0.8, 
         num_classes_per_batch: Annotated[int, typer.Option(min=1)] = 16,
+        path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
+        factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 3,
         ) -> None:
     
     """
     train a metric learning approach where batches are balanced by using 'num_classes_per_batch'
     """
-    assert batch_size % num_classes_per_batch == 0, "--batch-size must be divisible by --num-classes-per-path" 
+    assert batch_size % num_classes_per_batch == 0, "--batch-size must be divisible by --num-classes-per-batch" 
     print(f"Training neural network of type: {architecture.value}")
 
     # assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
@@ -478,16 +479,10 @@ def train_metric_learning(
     from .dnn.models.metric_learning import CNNFCGR
     from collections import defaultdict
 
-    KMER=kmer
-
     # parameters train
-    LATENT_DIM=latent_dim
-    EPOCHS=epochs
-    BATCH_SIZE=batch_size
     ARCHITECTURE=architecture
     PATIENTE_EARLY_STOPPING=patiente_early_stopping
     PATIENTE_LEARNING_RATE=patiente_learning_rate
-    # TRAIN_SIZE=train_size
 
     # folder where to save training results
     PATH_TRAIN=Path(outdir)
@@ -504,73 +499,27 @@ def train_metric_learning(
     # ------ data split: training + validation ------
 
     # From training list
-    # list_paths_train = []
-    # list_labels_train = []
     data_dict_train = defaultdict(list)
     with open(training_list, "r") as fp:
         for line in fp.readlines():
             path, label = line.replace("\n","").strip().split("\t") # first column of the input file 
             data_dict_train[label].append(path)
 
-            # if path.endswith(".npy"): 
-            #     list_paths_train.append(path)
-            #     list_labels_train.append(label)
-
     # From validation list
-    # list_paths_validation = []
-    # list_labels_validation = []
     data_dict_validation = defaultdict(list)
     with open(validation_list, "r") as fp:
         for line in fp.readlines():
             path, label = line.replace("\n","").strip().split("\t") # first column of the input file 
             data_dict_validation[label].append(path)
-            # if path.endswith(".npy"): 
-            #     list_paths_validation.append(path)
-            #     list_labels_validation.append(label)
 
-    batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*3
-    batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*3
-
-    # import random
-    # N_paths = len(list_paths)
-    # pos_cut = int(N_paths*TRAIN_SIZE)
-    # temp = list(zip(list_paths, list_labels))
-    # random.shuffle(temp)
-    # list_paths, list_labels = zip(*temp)
-    # list_train = list_paths[:pos_cut]
-    # labels_train = list_labels[:pos_cut]
-    # list_val   = list_paths[pos_cut:]
-    # labels_val = list_labels[pos_cut:]
-
-    # ------ training -----
-        
-    # # dataset train
-    # ds_train = DataLoader(
-    #     list_paths=list_train,
-    #     list_labels=labels_train,
-    #     batch_size=BATCH_SIZE,
-    #     shuffle=True,
-    #     preprocessing=preprocessing,
-    #     kmer_size=KMER,
-    # )
+    batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*factor_batches
+    batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*factor_batches
 
     generator_train = generator_balanced_triplet_batches(data_dict_train, batch_size, num_classes_per_batch)
     ds_train = tf.data.Dataset.from_generator(
                 generator_train,
                 output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
             ))  
-
-    # # dataset validation
-    # ds_validation = DataLoader(
-    #     list_paths=list_val,
-    #     list_labels=labels_val,
-    #     batch_size=BATCH_SIZE,
-    #     shuffle=False,
-    #     preprocessing=preprocessing,
-    #     kmer_size=KMER,
-    # )
-
-
 
     generator_validation = generator_balanced_triplet_batches(data_dict_validation, batch_size, num_classes_per_batch)
     ds_validation = tf.data.Dataset.from_generator(
@@ -643,20 +592,24 @@ def train_metric_learning(
         loss = tfa.losses.ContrastiveLoss()
 
     # Load and train model
-    model=eval(f"""{ARCHITECTURE}(latent_dim = {LATENT_DIM}, 
+    model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
                 hidden_activation='{hidden_activation}', 
                 kmer={kmer}, 
                 batch_normalization={batch_normalization},
                 )""")    
     
     # TODO: load pre-trained weights
-    
-    model.compile(optimizer=optimizer, loss=loss)
+    if path_weights is not None:
+        print(f"Using pretrained weights from {path_weights}")
+        model.load_weights(path_weights)
+        # model = tf.keras.models.load_model(path_weights)
+
+    model.compile(optimizer=optimizer, loss=loss,) # metrics=[tfa.metrics.CosineSimilarity(axis=-1)])
     
     model.fit(
         ds_train, 
         steps_per_epoch=batches_per_epoch_train,
-        epochs=EPOCHS,
+        epochs=epochs,
         validation_data=ds_validation, 
         validation_steps=batches_per_epoch_validation,
         callbacks=[
