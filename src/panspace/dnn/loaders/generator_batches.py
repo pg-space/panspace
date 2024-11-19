@@ -118,7 +118,19 @@ def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, wei
 def generator_one_shot(data_dict, batch_size, weights=False):
     """Create pairs to train contrastive loss
     output label=1 for similar classes, and label=0 for disimilar ones
-    """
+
+    Args:
+        data_dict (dict): dictionary where keys are species labels, and values are list of paths to FCGR
+        batch_size (int): number of FCGR in each batch
+        weights (bool, optional): if True, species labels are sampled based on their number of paths, underrepresented ones have higher probability. Defaults to False, means species are sampled randomly.
+
+    Returns:
+        generator: to be used with tf.data.Dataset.from_generato()
+
+    Yields:
+        tuple: (batch1, batch2), labels to train siamese network
+    """    
+    
 
     # samples_per_class = batch_size // num_classes_per_batch
     class_labels = list(data_dict.keys())
