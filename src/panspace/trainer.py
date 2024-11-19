@@ -21,6 +21,7 @@ from .dataclasses_cli import (
     Optimizer, 
     LossAutoencoder,
     LossMetricLearning, 
+    LossOneShot,
     Activation, 
     Preprocessing,
 )
@@ -364,7 +365,7 @@ def split_dataset_cross_validation(
 
         print("finished")  
 
-@app.command("split-data")
+# @app.command("split-data")
 def split_dataset(
             datadir: Annotated[Path, typer.Option("--datadir","-d", help="path to folder with .npy files.")],
             outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
@@ -441,7 +442,67 @@ def split_dataset(
     
     print("finished")
 
-@app.command("metric-learning", help="Create embedding using labels in training")
+@app.command("split-dataset", help="split data intro train, validation and test sets")
+def split_train_val_test(
+        file_paths_label: Annotated[Path, typer.Option("--file-paths-labels","-f", 
+                                                       help="tab separeted txt file with first column the npy path and second column the label")],
+        outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
+        train_size: Annotated[float, typer.Option(min=0.01, max=0.99, 
+                                                  help="""percentage of data to be used for training. 
+                                                  Validation and test will be of size (1-train_size)/2 each.""")] = 0.8,
+        seed: Annotated[int, typer.Option("--seed", "-s", 
+                                                    help= "to reproduce split of dataset")] = 42,
+        min_labels_test: Annotated[int, typer.Option("--min-labels", 
+                                                     help="""minimum number of labels of a species to be considered in the test set. 
+                                                     If the number of species in the input dataset is less than this, then all data will be used in the training set only""")] = 10,
+        ):
+
+    import random
+    import pandas as pd
+    random.seed(seed)
+    outdir = Path(outdir)
+    outdir.mkdir(exist_ok=True, parents=True)
+
+    df = pd.read_csv(file_paths_label, sep="\t", header=None, names=["path","label"])
+    unique_labels = df["label"].unique()  
+    unique_labels.sort()
+
+    for specie in track(unique_labels, description=":dna: split dataset by species"):
+
+        paths_specie = df.query(f"label == '{specie}'")["path"].tolist()
+        paths_specie.sort()
+        
+        if len(paths_specie) > min_labels_test:
+            random.shuffle(paths_specie)
+            N = len(paths_specie)
+            pos_train = int(0.8*N)
+            pos_test = int(0.9*N)
+            paths_train = paths_specie[:pos_train]
+            paths_validation = paths_specie[pos_train:pos_test]
+            paths_test = paths_specie[pos_test:]
+            # break
+
+            with open(outdir.joinpath("training_list.txt"),"a") as fp:
+                for path in paths_train:
+                    fp.write(f"{path}\t{specie}\n")
+
+            with open(outdir.joinpath("validation_list.txt"),"a") as fp:
+                for path in paths_validation:
+                    fp.write(f"{path}\t{specie}\n")
+
+            with open(outdir.joinpath("test_list.txt"),"a") as fp:
+                for path in paths_test:
+                    fp.write(f"{path}\t{specie}\n")
+
+        # species with less than min_labels_test FCGRs will only be used for training
+        else:
+            with open(outdir.joinpath("training_list.txt"),"a") as fp:
+                for path in paths_specie:
+                    fp.write(f"{path}\t{specie}\n")
+
+    print(f":dna: saved results in {outdir}")
+
+@app.command("metric-learning", help="Create embedding using labels in training with the triplet loss")
 def train_metric_learning(
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         validation_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
@@ -461,7 +522,7 @@ def train_metric_learning(
         patiente_learning_rate: Annotated[int, typer.Option()] = 10,
         num_classes_per_batch: Annotated[int, typer.Option(min=1)] = 16,
         path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
-        factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 3,
+        factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
         ) -> None:
     
     """
@@ -474,7 +535,7 @@ def train_metric_learning(
     import tensorflow as tf
     import tensorflow_addons as tfa
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
-    from .dnn.loaders.balanced_triplet_batches import generator_balanced_triplet_batches
+    from .dnn.loaders.generator_batches import generator_balanced_triplet_batches, generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.models.metric_learning import CNNFCGR
     from collections import defaultdict
@@ -491,10 +552,10 @@ def train_metric_learning(
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x: x / x.sum().sum()    
+        preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
     else: 
         # scale [0,1]
-        preprocessing = lambda x: x / x.max() 
+        preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
 
     # ------ data split: training + validation ------
 
@@ -515,13 +576,13 @@ def train_metric_learning(
     batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*factor_batches
     batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*factor_batches
 
-    generator_train = generator_balanced_triplet_batches(data_dict_train, batch_size, num_classes_per_batch)
+    generator_train = generator_balanced_batches(data_dict_train, batch_size, num_classes_per_batch, weights=True)
     ds_train = tf.data.Dataset.from_generator(
                 generator_train,
                 output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
             ))  
 
-    generator_validation = generator_balanced_triplet_batches(data_dict_validation, batch_size, num_classes_per_batch)
+    generator_validation = generator_balanced_batches(data_dict_validation, batch_size, num_classes_per_batch, weights=True)
     ds_validation = tf.data.Dataset.from_generator(
                 generator_validation,
                 output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
@@ -529,6 +590,9 @@ def train_metric_learning(
 
     ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
     ds_validation = ds_validation.prefetch(tf.data.AUTOTUNE)
+
+    ds_train.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
+    ds_validation.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
 
     # - Callbacks: actions that are triggered at the end of each epoch
     # checkpoint: save best weights
@@ -585,11 +649,14 @@ def train_metric_learning(
 
     # ---- loss function ----
     if loss.value == "triplet_hard_loss":
+        print("loss function: triplet hard")
         loss = tfa.losses.TripletHardLoss(margin=margin, distance_metric="L2", soft=False)    
     elif loss.value == "triplet_semihard_loss":
+        print("loss function: triplet semihard")
         loss = tfa.losses.TripletSemiHardLoss(margin=margin, distance_metric="L2")
     else:
-        loss = tfa.losses.ContrastiveLoss()
+        raise("undefined loss function")
+        # loss = tfa.losses.ContrastiveLoss(margin=margin, )
 
     # Load and train model
     model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
@@ -607,6 +674,207 @@ def train_metric_learning(
     model.compile(optimizer=optimizer, loss=loss,) # metrics=[tfa.metrics.CosineSimilarity(axis=-1)])
     
     model.fit(
+        ds_train, 
+        steps_per_epoch=batches_per_epoch_train,
+        epochs=epochs,
+        validation_data=ds_validation, 
+        validation_steps=batches_per_epoch_validation,
+        callbacks=[
+            cb_checkpoint,
+            cb_reducelr,
+            cb_earlystop,
+            cb_csvlogger,
+            cb_csvtime
+            ],
+        workers=8, use_multiprocessing=True, max_queue_size=256
+    )
+
+
+@app.command("one-shot", help="train one-shot model with contrastive loss")
+def train_contrastive_model(
+        training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
+        validation_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
+        kmer: Annotated[int, typer.Option(min=6, help="kmer used to create the FCGR that will be used to train the model.")],
+        outdir: Annotated[Path, typer.Option(help="directory to save experiment results")] = "output-training",
+        latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 128, 
+        hidden_activation: Annotated[Activation,typer.Option(help="activation function for hidden layers")]=Activation.Relu.value,
+        batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR")]=False,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
+        epochs: Annotated[int, typer.Option(min=1)] = 2,
+        batch_size: Annotated[int, typer.Option(min=1)] = 256,
+        # loss: Annotated[LossMetricLearning, typer.Option(help="loss function")] = LossOneShot.Contrastive.value,
+        margin: Annotated[float, typer.Option(help="margin for contrastive loss")] = 1.0,
+        optimizer: Annotated[Optimizer, typer.Option(help="optimizer to train the autoencoder (keras option with default params)")] = Optimizer.Adam.value,
+        patiente_early_stopping: Annotated[int, typer.Option()] = 20,
+        patiente_learning_rate: Annotated[int, typer.Option()] = 10,
+        path_weights: Annotated[Path, typer.Option(help="pretrained of backbone model trained with triplet loss, eg: path/to/weights.keras")] = None,
+        factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
+):
+
+    import tensorflow as tf
+    import tensorflow.keras.backend as K
+    import tensorflow_addons as tfa
+    from .dnn.loaders.generator_batches import generator_one_shot
+    from .dnn.callbacks import CSVTimeHistory
+    from .dnn.models.metric_learning import CNNFCGR
+    from collections import defaultdict
+
+    # parameters train
+    PATIENTE_EARLY_STOPPING=patiente_early_stopping
+    PATIENTE_LEARNING_RATE=patiente_learning_rate
+
+    # folder where to save training results
+    PATH_TRAIN=Path(outdir)
+    PATH_TRAIN.mkdir(exist_ok=True, parents=True)
+
+    def euclidean_distance(vects):
+        x, y = vects
+        sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
+        return K.sqrt(K.maximum(sum_square, K.epsilon()))
+
+    # ------- Dataset -------
+    # 
+    # preprocessing of each FCGR to feed the model 
+    if preprocessing == "distribution":
+        # sum = 1
+        fn_preprocessing = lambda x,y: ( x[0] / tf.math.reduce_sum(x[0]) , x[1] / tf.math.reduce_sum(x[1]) , y)  
+    else: 
+        # scale [0,1]
+        fn_preprocessing = lambda x,y: ( x[0] / tf.math.reduce_max(x[0]) , x[1] / tf.math.reduce_max(x[1]) , y)  
+
+    # From training list
+    data_dict_train = defaultdict(list)
+    with open(training_list, "r") as fp:
+        for line in fp.readlines():
+            path, label = line.replace("\n","").strip().split("\t") # first column of the input file 
+            data_dict_train[label].append(path)
+
+    # From validation list
+    data_dict_validation = defaultdict(list)
+    with open(validation_list, "r") as fp:
+        for line in fp.readlines():
+            path, label = line.replace("\n","").strip().split("\t") # first column of the input file 
+            data_dict_validation[label].append(path)
+
+    batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*factor_batches
+    batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*factor_batches
+
+    generator_train = generator_one_shot(data_dict_train, batch_size, weights=True)
+    ds_train = tf.data.Dataset.from_generator(
+                generator_train,
+                output_signature=(
+                                    (tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32)), 
+                                    tf.TensorSpec((batch_size,), dtype=tf.float32)
+                                )
+            )  
+
+    generator_validation = generator_one_shot(data_dict_validation, batch_size, weights=True)
+    ds_validation = tf.data.Dataset.from_generator(
+                generator_validation,
+                output_signature=(
+                                    (tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32)), 
+                                    tf.TensorSpec((batch_size,), dtype=tf.float32)
+                                )
+            )  
+
+    ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
+    ds_validation = ds_validation.prefetch(tf.data.AUTOTUNE)
+
+    # # apply preprocessing
+    ds_train.map(fn_preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
+    ds_validation.map(fn_preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # ----- Model ------
+    # 
+    # Load embedding model
+    embedding_model=CNNFCGR(
+                latent_dim=latent_dim, 
+                hidden_activation=hidden_activation, 
+                kmer=kmer, 
+                batch_normalization=batch_normalization,
+                )
+
+    if path_weights is not None:
+        print(f"Using pretrained weights from {path_weights}")
+        embedding_model.load_weights(path_weights)
+
+
+    # one_shot model
+    rows = 2**kmer
+    cols = rows
+    input_1 = tf.keras.layers.Input(shape=(rows,cols,1), name="input_1")
+    input_2 = tf.keras.layers.Input(shape=(rows,cols,1), name="input_2")
+
+    tower_1 = embedding_model(input_1)
+    tower_2 = embedding_model(input_2)
+
+    edist = tf.keras.layers.Lambda(euclidean_distance, output_shape=(1,))([tower_1, tower_2])
+
+    normal_layer = tf.keras.layers.BatchNormalization()(edist)
+    output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(normal_layer)
+
+    one_shot_model = tf.keras.models.Model(inputs=[input_1, input_2], outputs=output_layer)
+
+    # ------ Callbacks ------
+    # actions that are triggered at the end of each epoch
+
+    # checkpoint: save best weights
+    Path(f"{PATH_TRAIN}/checkpoints").mkdir(exist_ok=True, parents=True)
+    # TODO: save only weights
+    cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        filepath=f'{PATH_TRAIN}/checkpoints/weights-one-shot.keras',
+        monitor='val_loss',
+        mode='min',
+        save_best_only=True,
+        verbose=1
+    )
+
+    # reduce learning rate
+    cb_reducelr = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        mode='min',
+        factor=0.1,
+        patience=PATIENTE_LEARNING_RATE,
+        verbose=1,
+        min_lr=0.000001
+    )
+
+    # stop training if
+    cb_earlystop = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        mode='auto',
+        # min_delta=0.001,
+        patience=PATIENTE_EARLY_STOPPING,
+        verbose=1
+    )
+
+    # save history of training
+    cb_csvlogger = tf.keras.callbacks.CSVLogger(
+        filename=f'{PATH_TRAIN}/training_log.csv',
+        separator='\t',
+        append=False
+    )
+
+    # save time by epoch
+    cb_csvtime = CSVTimeHistory(
+        filename=f'{PATH_TRAIN}/time_log.csv',
+        separator='\t',
+        append=False
+    )
+   
+    # ---- optimizer ----
+    if optimizer.value=="ranger":
+        radam = tfa.optimizers.RectifiedAdam()
+        ranger = tfa.optimizers.Lookahead(radam, sync_period=6, slow_step_size=0.5)
+        optimizer = ranger
+    else:
+        optimizer=optimizer.value
+
+    loss = tfa.losses.ContrastiveLoss(margin=margin,)
+
+    one_shot_model.compile(optimizer=optimizer, loss=loss,)
+    
+    one_shot_model.fit(
         ds_train, 
         steps_per_epoch=batches_per_epoch_train,
         epochs=epochs,

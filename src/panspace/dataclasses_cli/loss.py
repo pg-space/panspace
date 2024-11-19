@@ -6,6 +6,9 @@ class LossAutoencoder(str, Enum):
     CategoricalCrossEntropy="categorical_crossentropy"
 
 class LossMetricLearning(str,Enum):
-    Contrastive="contrastive_loss"
     TripletSemiHard="triplet_semihard_loss"
     TripletHard="triplet_hard_loss"
+
+
+class LossOneShot(str, Enum):
+    Contrastive="contrastive_loss"

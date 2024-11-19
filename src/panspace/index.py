@@ -6,6 +6,10 @@ from rich.progress import track
 from rich import print 
 from rich.console import Console
 
+from .dataclasses_cli import (
+    Preprocessing,
+)
+
 console=Console()
 app = typer.Typer(help="Create and query index. Utilities to test index.")
 
@@ -19,6 +23,7 @@ def create_index(
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
         kmer_size: Annotated[int, typer.Option("--kmer-size", "-k",min=1)] = 6,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
         ) -> None:
     import json
     import faiss
@@ -30,22 +35,15 @@ def create_index(
         
     # PATH_EXP=path_experiment
     LATENT_DIM=latent_dim
-    PATH_INDEX=path_index#Path(PATH_EXP).joinpath("faiss-embeddings/panspace.index")
+    PATH_INDEX=path_index
     PATH_INDEX.parent.mkdir(exist_ok=True, parents=True)
 
     # 1. load encoder
-    console.print(":dna: loading encoder...")
-    encoder =tf.keras.models.load_model(path_encoder) # f"{PATH_EXP}/models/encoder.keras"
+    console.print(":dna: loading encoder from: {path_encoder}")
+    encoder =tf.keras.models.load_model(path_encoder)
 
     # 2. load dataset to add in the index (train+val)
-    console.print(":dna: loading list of files to index (train+val)")
-    
-    # # TODO: change this, load a txt file with path in the first column and metadata in the others, separated by \t
-    # with open(f"{PATH_EXP}/split-train-val-test.json","r") as fp:
-    #     datasets = json.load(fp)
-
-    # list_train = datasets["id_labels"]["train"]
-    # list_val   = datasets["id_labels"]["val"]
+    console.print(":dna: loading list of files to index from: {files_to_index}")
 
     # load paths and labels
     index_paths, index_labels = [],[]
@@ -59,8 +57,16 @@ def create_index(
             index_labels.append(label)
             
     # 3. create embeddings
+    # # preprocessing of each FCGR to feed the model 
+    # preprocessing = lambda x: x / x.max() 
+
     # preprocessing of each FCGR to feed the model 
-    preprocessing = lambda x: x / x.max() 
+    if preprocessing == "distribution":
+        # sum = 1
+        preprocessing = lambda x: x / x.sum().sum()    
+    else: 
+        # scale [0,1]
+        preprocessing = lambda x: x / x.max() 
 
     # compute embeddings
     index_data = DataLoader(
@@ -115,6 +121,7 @@ def query_index(
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
         kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")] = 6,
         threshold_outlier: Annotated[float, typer.Option("--threshold-outlier","-to", help="Average distance threshold to flag outlier")] = None,
+        preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
         ) -> None:
         # batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
     # console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
@@ -183,8 +190,16 @@ def query_index(
     print(encoder.summary())
 
     # 3. create embeddings
+    # # preprocessing of each FCGR to feed the model 
+    # preprocessing = lambda x: x / x.max() 
+
     # preprocessing of each FCGR to feed the model 
-    preprocessing = lambda x: x / x.max() 
+    if preprocessing == "distribution":
+        # sum = 1
+        preprocessing = lambda x: x / x.sum().sum()    
+    else: 
+        # scale [0,1]
+        preprocessing = lambda x: x / x.max() 
 
     # create dataset to fed Encoder
     index_data = DataLoader(
@@ -259,74 +274,74 @@ def query_index(
     np.save( Path(OUTDIR).joinpath("embeddings.npy") , query_emb )  
     console.print(":dna: Done!")
 
-@app.command("metrics-test", help="Compute metrics for test.", deprecated=True)
-def metrics_test_index(
-            path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
-            n_neighbors: Annotated[int, typer.Option("--n-neighbors","-n", min=1, help="path to experiment")],
-            ) -> None:
+# @app.command("metrics-test", help="Compute metrics for test.", deprecated=True)
+# def metrics_test_index(
+#             path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
+#             n_neighbors: Annotated[int, typer.Option("--n-neighbors","-n", min=1, help="path to experiment")],
+#             ) -> None:
     
-    import json
-    import pandas as pd
+#     import json
+#     import pandas as pd
 
-    from pathlib import Path
-    from collections import Counter, namedtuple, defaultdict
+#     from pathlib import Path
+#     from collections import Counter, namedtuple, defaultdict
 
-    from sklearn.metrics import (
-        precision_score, 
-        recall_score,
-        accuracy_score, 
-        balanced_accuracy_score
-        )
+#     from sklearn.metrics import (
+#         precision_score, 
+#         recall_score,
+#         accuracy_score, 
+#         balanced_accuracy_score
+#         )
 
-    N_NEIGHBORS=n_neighbors # 3 # 1 3 5 10 
-    PATH_EXP=path_experiment
+#     N_NEIGHBORS=n_neighbors # 3 # 1 3 5 10 
+#     PATH_EXP=path_experiment
 
-    # load labels for train+val and test
-    with open(f"{PATH_EXP}/split-train-val-test.json","r") as fp:
-        datasets = json.load(fp)
+#     # load labels for train+val and test
+#     with open(f"{PATH_EXP}/split-train-val-test.json","r") as fp:
+#         datasets = json.load(fp)
 
-    # collect info in a dataframe
-    InfoLabels = namedtuple("InfoLabels",["label","dataset","count"])
+#     # collect info in a dataframe
+#     InfoLabels = namedtuple("InfoLabels",["label","dataset","count"])
 
-    data = []
-    for ds in ["train","val","test"]:
-        count = Counter(datasets["labels"][ds])
-        for specie, count in count.items():
-            data.append(
-                InfoLabels(specie, ds, count)
-            )
+#     data = []
+#     for ds in ["train","val","test"]:
+#         count = Counter(datasets["labels"][ds])
+#         for specie, count in count.items():
+#             data.append(
+#                 InfoLabels(specie, ds, count)
+#             )
 
-    df_infolabels = pd.DataFrame(data)
+#     df_infolabels = pd.DataFrame(data)
 
-    # get dict with count for the test set for later evaluation
-    counts_test = dict()
-    for idx, sp, ds, count in df_infolabels.query("dataset == 'test'").to_records("record"):
-        counts_test[sp] = count
+#     # get dict with count for the test set for later evaluation
+#     counts_test = dict()
+#     for idx, sp, ds, count in df_infolabels.query("dataset == 'test'").to_records("record"):
+#         counts_test[sp] = count
 
-    counts_train = defaultdict(int)
-    for idx, sp, ds, count in df_infolabels.query("dataset != 'test'").to_records("record"):
-        counts_train[sp] += count
+#     counts_train = defaultdict(int)
+#     for idx, sp, ds, count in df_infolabels.query("dataset != 'test'").to_records("record"):
+#         counts_train[sp] += count
 
-    # load predictions
-    df = pd.read_csv(Path(PATH_EXP).joinpath("test/test_index.tsv"),sep="\t", index_col=0)
-    df.head(5)
+#     # load predictions
+#     df = pd.read_csv(Path(PATH_EXP).joinpath("test/test_index.tsv"),sep="\t", index_col=0)
+#     df.head(5)
 
-    classes = df.GT.unique()
-    classes = sorted(classes)
-    y_true, y_pred = df.GT, df[f"consensus_{N_NEIGHBORS}"]
+#     classes = df.GT.unique()
+#     classes = sorted(classes)
+#     y_true, y_pred = df.GT, df[f"consensus_{N_NEIGHBORS}"]
 
-    accuracy_score(y_true, y_pred), balanced_accuracy_score(y_true, y_pred), len(classes)
+#     accuracy_score(y_true, y_pred), balanced_accuracy_score(y_true, y_pred), len(classes)
 
-    precision = precision_score(y_true, y_pred, average=None, labels=classes)
-    recall = recall_score(y_true, y_pred, average=None, labels=classes)
+#     precision = precision_score(y_true, y_pred, average=None, labels=classes)
+#     recall = recall_score(y_true, y_pred, average=None, labels=classes)
 
-    data_metrics = []
-    Metrics = namedtuple("Metrics", ["label","n_queries", "n_index", "precision","recall"])
-    for sp, prec, rec in zip(classes, precision, recall):
-        n_queries= counts_test[sp]
-        n_index = counts_train[sp]
-        data_metrics.append(
-            Metrics(sp, n_queries, n_index, prec, rec)
-        )
+#     data_metrics = []
+#     Metrics = namedtuple("Metrics", ["label","n_queries", "n_index", "precision","recall"])
+#     for sp, prec, rec in zip(classes, precision, recall):
+#         n_queries= counts_test[sp]
+#         n_index = counts_train[sp]
+#         data_metrics.append(
+#             Metrics(sp, n_queries, n_index, prec, rec)
+#         )
 
-    pd.DataFrame(data_metrics).sort_values(by="precision").to_csv(Path(PATH_EXP).joinpath(f"test/precision_recall_consensus_{N_NEIGHBORS}.csv"),sep="\t")
+#     pd.DataFrame(data_metrics).sort_values(by="precision").to_csv(Path(PATH_EXP).joinpath(f"test/precision_recall_consensus_{N_NEIGHBORS}.csv"),sep="\t")
