@@ -717,6 +717,8 @@ def train_contrastive_model(
     from .dnn.loaders.generator_batches import generator_one_shot
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.models.metric_learning import CNNFCGR
+    from .dnn.models.custom_layers.euclidean_distance import EuclideanDistance
+
     from collections import defaultdict
 
     # parameters train
@@ -727,10 +729,16 @@ def train_contrastive_model(
     PATH_TRAIN=Path(outdir)
     PATH_TRAIN.mkdir(exist_ok=True, parents=True)
 
-    def euclidean_distance(vects):
-        x, y = vects
-        sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
-        return K.sqrt(K.maximum(sum_square, K.epsilon()))
+    # def euclidean_distance(vects):
+    #     x, y = vects
+    #     sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
+    #     return K.sqrt(K.maximum(sum_square, K.epsilon()))
+
+    class EuclideanDistance(tf.keras.layers.Layer):
+        def call(self, inputs):
+            x, y = inputs
+            sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
+            return K.sqrt(K.maximum(sum_square, K.epsilon()))
 
     # ------- Dataset -------
     # 
@@ -808,7 +816,10 @@ def train_contrastive_model(
     tower_1 = embedding_model(input_1)
     tower_2 = embedding_model(input_2)
 
-    edist = tf.keras.layers.Lambda(euclidean_distance, output_shape=(1,))([tower_1, tower_2])
+    emb_1 = tf.keras.layers.Identity(False, name="output_1")(tower_1)
+    emb_2 = tf.keras.layers.Identity(False, name="output_2")(tower_2)
+    
+    edist = EuclideanDistance()([emb_1, emb_2])
 
     normal_layer = tf.keras.layers.BatchNormalization()(edist)
     output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(normal_layer)
@@ -889,3 +900,23 @@ def train_contrastive_model(
             ],
         workers=8, use_multiprocessing=True, max_queue_size=256
     )
+
+@app.command("extract-backbone-one-shot", help="get embedding model from siamese network trained with contrastive loss")
+def extract_backbone_one_shot_model(
+            path_model: Annotated[Path, typer.Option(help="trained siamese network with contrastive loss, eg: path/to/checkpoint.keras")],
+            path_save: Annotated[Path, typer.Option(help="path to save backbone model to output embeddings, eg: path/to/model.keras")]
+            ):
+    
+    import tensorflow as tf 
+    from .dnn.models.custom_layers.euclidean_distance import EuclideanDistance
+
+    print(f"Loading siamese network from {path_model}")
+
+    siamese = tf.keras.models.load_model(path_model, custom_objects={"EuclideanDistance": EuclideanDistance})    
+    embedding_input = siamese.get_layer("input_1").input
+    embedding_output = siamese.get_layer("output_1").output
+
+    embedding_extractor = tf.keras.models.Model(inputs=embedding_input, outputs=embedding_output)
+
+    print(f"Saving embedding model to {path_save}")
+    embedding_extractor.save(path_save)

@@ -39,11 +39,11 @@ def create_index(
     PATH_INDEX.parent.mkdir(exist_ok=True, parents=True)
 
     # 1. load encoder
-    console.print(":dna: loading encoder from: {path_encoder}")
+    console.print(f":dna: loading encoder from: {path_encoder}")
     encoder =tf.keras.models.load_model(path_encoder)
 
     # 2. load dataset to add in the index (train+val)
-    console.print(":dna: loading list of files to index from: {files_to_index}")
+    console.print(f":dna: loading list of files to index from: {files_to_index}")
 
     # load paths and labels
     index_paths, index_labels = [],[]
