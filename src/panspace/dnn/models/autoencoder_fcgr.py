@@ -1,11 +1,10 @@
 """
-FCGR autoencoder
+Autoencoder
 """
 import tensorflow as tf
-from .custom_layers import ConvFCGR, DeConvFCGR
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose
 
-def AutoencoderFCGR(latent_dim: int = 100, 
+def AutoencoderFCGR(latent_dim: int = 128, 
                     output_activation="sigmoid", 
                     hidden_activation="relu", 
                     kmer: int = 6, 

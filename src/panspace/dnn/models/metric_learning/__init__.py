@@ -1,1 +1,0 @@
-from .cnn_fcgr import CNNFCGR

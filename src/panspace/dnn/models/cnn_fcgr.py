@@ -8,10 +8,9 @@ Loss functions to be used with it:
 """
 
 import tensorflow as tf
-# from .custom_layers import ConvFCGR # , DeConvFCGR
 from tensorflow.keras.layers import Conv2D
 
-def CNNFCGR(latent_dim: int = 100, 
+def CNNFCGR(latent_dim: int = 128, 
             hidden_activation="relu", 
             kmer: int = 6, 
             batch_normalization: bool = True,

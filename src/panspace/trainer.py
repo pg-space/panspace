@@ -56,16 +56,7 @@ def train_autoencoder(
     from collections import Counter
     import tensorflow as tf
     from .dnn.loaders import DataLoaderAutoencoder as DataLoader
-    from .dnn.models import (
-        DenseAutoencoder,
-        CNNAutoencoder,
-        CNNAutoencoderBN, 
-        CNNAutoencoderCAE,
-        CNNAutoencoderCAEBN,
-        CNNAutoencoderCAEBNLeakyRelu,
-        CNNAutoencoderCAEBNL2Emb,
-        AutoencoderFCGR
-        )
+    from .dnn.models import AutoencoderFCGR
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.utils.split_data import TrainValTestSplit
 
@@ -523,6 +514,7 @@ def train_metric_learning(
         num_classes_per_batch: Annotated[int, typer.Option(min=1)] = 16,
         path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
         factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
+        weighted_loader: Annotated[bool, typer.Option("--weighted-loader", "-wl",help="If set, batches will be created weightening classes by representatitity, otherwise, random selection will be used.")]=False,
         ) -> None:
     
     """
@@ -537,7 +529,7 @@ def train_metric_learning(
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
     from .dnn.loaders.generator_batches import generator_balanced_triplet_batches, generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
-    from .dnn.models.metric_learning import CNNFCGR
+    from .dnn.models import CNNFCGR
     from collections import defaultdict
 
     # parameters train
@@ -576,13 +568,13 @@ def train_metric_learning(
     batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*factor_batches
     batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*factor_batches
 
-    generator_train = generator_balanced_batches(data_dict_train, batch_size, num_classes_per_batch, weights=True)
+    generator_train = generator_balanced_batches(data_dict_train, batch_size, num_classes_per_batch, weights=weighted_loader)
     ds_train = tf.data.Dataset.from_generator(
                 generator_train,
                 output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
             ))  
 
-    generator_validation = generator_balanced_batches(data_dict_validation, batch_size, num_classes_per_batch, weights=True)
+    generator_validation = generator_balanced_batches(data_dict_validation, batch_size, num_classes_per_batch, weights=weighted_loader)
     ds_validation = tf.data.Dataset.from_generator(
                 generator_validation,
                 output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
@@ -714,9 +706,13 @@ def train_contrastive_model(
     import tensorflow as tf
     import tensorflow.keras.backend as K
     import tensorflow_addons as tfa
-    from .dnn.loaders.generator_batches import generator_one_shot
+    from .dnn.loaders.generator_batches import (
+        generator_one_shot, 
+        generator_one_shot_genus, 
+        generator_one_shot_genus_mix,
+        )
     from .dnn.callbacks import CSVTimeHistory
-    from .dnn.models.metric_learning import CNNFCGR
+    from .dnn.models import CNNFCGR
     from .dnn.models.custom_layers.euclidean_distance import EuclideanDistance
 
     from collections import defaultdict
@@ -728,17 +724,6 @@ def train_contrastive_model(
     # folder where to save training results
     PATH_TRAIN=Path(outdir)
     PATH_TRAIN.mkdir(exist_ok=True, parents=True)
-
-    # def euclidean_distance(vects):
-    #     x, y = vects
-    #     sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
-    #     return K.sqrt(K.maximum(sum_square, K.epsilon()))
-
-    class EuclideanDistance(tf.keras.layers.Layer):
-        def call(self, inputs):
-            x, y = inputs
-            sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
-            return K.sqrt(K.maximum(sum_square, K.epsilon()))
 
     # ------- Dataset -------
     # 
