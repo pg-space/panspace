@@ -752,7 +752,7 @@ def train_contrastive_model(
     batches_per_epoch_train = int( sum([len(_) for _ in data_dict_train.values()]) / batch_size)*factor_batches
     batches_per_epoch_validation = int( sum([len(_) for _ in data_dict_validation.values()]) / batch_size)*factor_batches
 
-    generator_train = generator_one_shot(data_dict_train, batch_size, weights=True)
+    generator_train = generator_one_shot(data_dict_train, batch_size, weights=False)
     ds_train = tf.data.Dataset.from_generator(
                 generator_train,
                 output_signature=(
@@ -761,7 +761,7 @@ def train_contrastive_model(
                                 )
             )  
 
-    generator_validation = generator_one_shot(data_dict_validation, batch_size, weights=True)
+    generator_validation = generator_one_shot(data_dict_validation, batch_size, weights=False)
     ds_validation = tf.data.Dataset.from_generator(
                 generator_validation,
                 output_signature=(

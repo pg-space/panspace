@@ -58,7 +58,7 @@ def generator_balanced_triplet_batches(data_dict, batch_size, num_classes_per_ba
     return generator
 
 
-def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, weights=False ):
+def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, weights=False):
     """
     Creates batches with a fixed number of classes and samples per class.
     
@@ -138,7 +138,7 @@ def generator_one_shot(data_dict, batch_size, weights=False):
 
     class_labels_by_genus = defaultdict(list)
     for label in class_labels:
-        genus, _ =  label.split("_")[0]
+        genus, *_ =  label.split("_")
         class_labels_by_genus[genus].append(label)
 
     if weights is True:
