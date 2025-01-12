@@ -1,4 +1,5 @@
 from enum import Enum
 
 class ModelMetricLearning(str, Enum):
-    CNNFCGR="CNNFCGR"
+    CNNFCGR="CNNFCGR",
+    ResNet50="ResNet50",

@@ -529,7 +529,7 @@ def train_metric_learning(
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
     from .dnn.loaders.generator_batches import generator_balanced_triplet_batches, generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
-    from .dnn.models import CNNFCGR
+    from .dnn.models import CNNFCGR, ResNet50
     from collections import defaultdict
 
     # parameters train
@@ -651,11 +651,19 @@ def train_metric_learning(
         # loss = tfa.losses.ContrastiveLoss(margin=margin, )
 
     # Load and train model
-    model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
-                hidden_activation='{hidden_activation}', 
-                kmer={kmer}, 
-                batch_normalization={batch_normalization},
-                )""")    
+    if ARCHITECTURE == "CNNFCGR":
+        model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
+                    hidden_activation='{hidden_activation}', 
+                    kmer={kmer}, 
+                    batch_normalization={batch_normalization},
+                    )""")    
+    elif ARCHITECTURE == "ResNet50":
+        model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
+                    hidden_activation='{hidden_activation}', 
+                    kmer={kmer},
+                    )""")
+    else:
+        raise Exception("Model not found")
     
     # TODO: load pre-trained weights
     if path_weights is not None:
