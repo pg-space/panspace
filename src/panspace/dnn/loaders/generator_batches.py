@@ -3,6 +3,13 @@ import numpy as np
 import random
 from collections import defaultdict
 
+from concurrent.futures import ThreadPoolExecutor
+
+def load_file(path):
+    data = np.load(path)
+    data = np.expand_dims(np.expand_dims(data, axis=0), axis=-1)
+    return data
+
 random.seed(42)
 
 # Assume data_dict is your class-to-samples mapping
@@ -66,6 +73,7 @@ def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, wei
         data_dict (dict): Mapping from class labels to lists of paths.
         batch_size (int): Total number of samples per batch.
         num_classes_per_batch (int): Number of classes per batch.
+        weights (bool): if True, probabilities to sample each class are weighted by their representativity, it prefers to sample underrepresented classes. Default False, i.e. classes are sampled randomly
     
     Returns:
         tf.data.Dataset: A dataset yielding balanced batches.
@@ -76,9 +84,11 @@ def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, wei
     n_classes = len(class_labels)
 
     if weights is True:
+        print("Generator batches: underrepresented classes have higher probability")
         class_labels_freq = np.array([len(x) for x in data_dict.values()])
         class_probs = (class_labels_freq.sum() - class_labels_freq) / ((n_classes-1)*class_labels_freq.sum()) # probabilities to sample each class. Underrepresented ones have higher probability
     else:
+        print("Generator batches: sampling all classes with same probability")
         class_probs = None
     encoder_output = {label: num for num, label in enumerate(data_dict.keys())}
 
@@ -94,21 +104,27 @@ def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, wei
             labels = []
             for cls in selected_classes:
                 paths_class = data_dict[cls]
-                selected_samples = random.choices(paths_class, k=samples_per_class) # sampling with replacement
+                selected_samples = np.random.choice(paths_class, size=samples_per_class, replace=True) # sampling with replacement
                 
                 # load paths and labels in the batch
                 paths.extend(selected_samples)        
-                labels.extend(encoder_output[cls] for _ in selected_samples)
+                # labels.extend(encoder_output[cls] for _ in selected_samples)
+                labels.extend([encoder_output[cls]]*samples_per_class)
 
-            # shuffle both paths and labels
-            zipped = list(zip(paths, labels))
-            random.shuffle(zipped)
-            paths, labels = zip(*zipped)
+            # # shuffle both paths and labels
+            # zipped = list(zip(paths, labels))
+            # random.shuffle(zipped)
+            # paths, labels = zip(*zipped)
+            
+            # with ThreadPoolExecutor() as executor:
+            #     batch_X = list(executor.map(load_file, paths))
+            
+            paths = np.array(paths)
+            y = np.array(labels)
 
             # load numpy arrays with batch and channel axes
             batch_X = [np.expand_dims(np.expand_dims(np.load(p),axis=0),axis=-1) for p in paths]
             X = np.concatenate(batch_X, axis=0)
-            y = np.array(labels)
             
             yield X, y
     

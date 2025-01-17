@@ -529,7 +529,7 @@ def train_metric_learning(
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
     from .dnn.loaders.generator_batches import generator_balanced_triplet_batches, generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
-    from .dnn.models import CNNFCGR, ResNet50
+    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout
     from collections import defaultdict
 
     # parameters train
@@ -651,7 +651,7 @@ def train_metric_learning(
         # loss = tfa.losses.ContrastiveLoss(margin=margin, )
 
     # Load and train model
-    if ARCHITECTURE == "CNNFCGR":
+    if ARCHITECTURE in ["CNNFCGR","CNNFCGR_Dropout"]:
         model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
                     hidden_activation='{hidden_activation}', 
                     kmer={kmer}, 
