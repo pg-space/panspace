@@ -571,13 +571,13 @@ def train_metric_learning(
     generator_train = generator_balanced_batches(data_dict_train, batch_size, num_classes_per_batch, weights=weighted_loader)
     ds_train = tf.data.Dataset.from_generator(
                 generator_train,
-                output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
+                output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int16)
             ))  
 
     generator_validation = generator_balanced_batches(data_dict_validation, batch_size, num_classes_per_batch, weights=weighted_loader)
     ds_validation = tf.data.Dataset.from_generator(
                 generator_validation,
-                output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int8)
+                output_signature=(tf.TensorSpec((batch_size,2**kmer, 2**kmer, 1), dtype=tf.float32), tf.TensorSpec((batch_size,), dtype=tf.int16)
             ))  
 
     ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
