@@ -108,17 +108,8 @@ def generator_balanced_batches(data_dict, batch_size, num_classes_per_batch, wei
                 
                 # load paths and labels in the batch
                 paths.extend(selected_samples)        
-                # labels.extend(encoder_output[cls] for _ in selected_samples)
                 labels.extend([encoder_output[cls]]*samples_per_class)
 
-            # # shuffle both paths and labels
-            # zipped = list(zip(paths, labels))
-            # random.shuffle(zipped)
-            # paths, labels = zip(*zipped)
-            
-            # with ThreadPoolExecutor() as executor:
-            #     batch_X = list(executor.map(load_file, paths))
-            
             paths = np.array(paths)
             y = np.array(labels)
 

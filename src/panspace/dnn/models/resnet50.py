@@ -1,7 +1,6 @@
 # https://github.com/c1ph3rr/Deep-Residual-Learning-for-Image-Recognition/blob/master/Resnet50.py
 from pathlib import Path
 import tensorflow as tf
-from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
     Input, 
     Conv2D, 
@@ -12,7 +11,6 @@ from tensorflow.keras.layers import (
     Activation, 
     BatchNormalization, 
     ZeroPadding2D,
-    Flatten,
 )
 
 # Reference name of model
@@ -72,13 +70,13 @@ def convolutional_block(inp, filters, kernel_size, block, layer, strides=2):
 def ResNet50(
     latent_dim: int = 128, 
     hidden_activation="relu", 
-    kmer: int = 6, 
-    # batch_normalization: bool = True,                
+    kmer: int = 6,                 
 ):
-
-    inp = Input(shape=(64, 64, 1), name='input')
+    rows = 2**kmer 
+    cols = rows 
+    inp = Input(shape=(rows, cols, 1), name='input')
+    
     padd = ZeroPadding2D(3)(inp)
-
     conv1 = Conv2D(64, 7, strides=2, padding='valid', name='conv1')(padd)
     conv1 = BatchNormalization(name='batch2')(conv1)
     conv1 = Activation('relu')(conv1)
@@ -106,10 +104,8 @@ def ResNet50(
     conv5 = identity_block(conv5, [512,512,2048], 3, '5', '3')
 
     x = GlobalAveragePooling2D()(conv5)
-    # out = Dense(n_outputs, activation='softmax')(avg_pool)
 
     # Embedding Space
-    # x = Flatten()(x)
     x = Dense(latent_dim, activation=hidden_activation, name="output_dense")(x)
     emb = tf.math.l2_normalize(x, axis=1,)   # Embedding: L2 normalization layer
     
