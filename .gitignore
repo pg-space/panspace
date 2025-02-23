@@ -22,3 +22,9 @@ tmp-kmc/
 
 # experiments ml
 mlruns/
+# Python package files
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/

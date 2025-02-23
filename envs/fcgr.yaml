@@ -1,9 +1,0 @@
-name: fcgr
-channels: 
-  - anaconda
-dependencies:
-  - python < 3.9
-  - pip
-  - pip:
-    - complexcgr
-    - rich-argparse
