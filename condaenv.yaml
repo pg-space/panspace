@@ -2,8 +2,12 @@ name: panspace
 channels:
   - conda-forge
   - anaconda
+  - bioconda
 dependencies:
   - python >= 3.9, < 3.11
   - pip
   - pip:
     - -e .[cpu]
+  - ipykernel
+  - jupyterlab
+  - snakemake
