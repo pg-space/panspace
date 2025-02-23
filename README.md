@@ -11,10 +11,41 @@ of embeddings.
 ```bash
 git clone git@github.com:pg-space/panspace.git
 cd panspace
+``` 
 
-mamba env create -n panspace -f condaenv.yaml
-mamba activate panspace
+### Install the package
 
+To install the package from the `pyproject.toml` file:
+
+#### Install with CPU support
+
+To install the package with CPU support from the `pyproject.toml` file:
+
+```bash
+pip install .[cpu]
+```
+
+To install the package with CPU support directly from the GitHub repository:
+
+```bash
+pip install git+https://github.com/pg-space/panspace.git#egg=panspace[cpu]
+```
+
+#### Install with GPU support
+
+To install the package with GPU support from the `pyproject.toml` file:
+
+```bash
+pip install .[gpu]
+```
+
+To install the package with GPU support directly from the GitHub repository:
+
+```bash
+pip install git+https://github.com/pg-space/panspace.git#egg=panspace[gpu]
+```
+
+```bash
 panspace --help 
 
 Usage: panspace [OPTIONS] COMMAND [ARGS]...                                                                               
@@ -38,12 +69,6 @@ Usage: panspace [OPTIONS] COMMAND [ARGS]...
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-
-
-## 1. Train Autoencoder and create index
-
-## 2. Query index
-
 ___
 # Author
-`panspace` is developed by [Jorge Avila](https://github.com/jorgeavilacartes/)
+`panspace` is developed by [Jorge Avila Cartes](https://github.com/jorgeavilacartes/)

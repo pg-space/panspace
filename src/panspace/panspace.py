@@ -2,16 +2,18 @@
 
 MARKDOWN = """
 # `panspace` WHAT-TO-DO?   
-- `panspace` is a tool for building and querying a large set of assemblies in an embedding space. 
+- `panspace` is a tool for building and querying an embedding-based index for assemblies. 
 
 - It trains a model (autoencoder) to create a vector representation of the k-mer distributions of each assembly
-in a low dimensional space (default dim=100), the 'panspace'.
+in a low dimensional space (default dim=256), the 'panspace'.
 
-- `panspace` represents each k-mer distribution as a Frequency matrix of the Chaos Game Representation of DNA, FCGR.
+- `panspace` represents each k-mer distribution of an assembly with its FCGR representation.
 
 - Once an autoencoder is trained, the Encoder is removed and used to map the assemblies to the embedding space. 
 
 A step-by-step guide to help you
+
+With no labels, the way to go is to use the AutoencoderFCGR:
 
 1. Create FCGR dataset | `panspace trainer fcgr --help`
 2. Train Autoencoder | `panspace trainer train-autoencoder --help`
@@ -19,7 +21,12 @@ A step-by-step guide to help you
 4. Create Index | `panspace index create --help`
 5. Query Index | `panspace index query --help`
 
-**Avanced**: Test
+If you have labels for your assemblies, the way to go is with to train the CNNFCGR architecture with Metric Learning
+
+1. Create FCGR dataset | `panspace trainer fcgr --help`
+2. Train CNNFCGR | `panspace trainer metric-learning --help`
+4. Create Index | `panspace index create --help`
+5. Query Index | `panspace index query --help`
 """
 import typer
 

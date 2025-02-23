@@ -6,4 +6,4 @@ dependencies:
   - python >= 3.9, < 3.11
   - pip
   - pip:
-    - -e .
+    - -e .[cpu]
