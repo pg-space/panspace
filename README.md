@@ -28,7 +28,7 @@ pip install .[cpu]
 To install the package with CPU support directly from the GitHub repository:
 
 ```bash
-pip install git+https://github.com/pg-space/panspace.git#egg=panspace[cpu]
+pip install panspace[cpu] @ git+https://github.com/pg-space/panspace.git
 ```
 
 #### Install with GPU support
@@ -42,7 +42,7 @@ pip install .[gpu]
 To install the package with GPU support directly from the GitHub repository:
 
 ```bash
-pip install git+https://github.com/pg-space/panspace.git#egg=panspace[gpu]
+pip install "panspace[gpu] @ git+https://github.com/pg-space/panspace.git"
 ```
 
 ```bash

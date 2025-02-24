@@ -17,12 +17,12 @@ app = typer.Typer(help="Create and query index. Utilities to test index.")
 def create_index(
         # path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment with a trained model")],
         files_to_index: Annotated[Path, typer.Option("--files-to-index","-i", help=".txt file where the first column contains a list with paths to FCGRs in .npy format")], 
+        kmer_size: Annotated[int, typer.Option("--kmer-size", "-k",min=1)],
         col_labels: Annotated[int, typer.Option("--col-labels", "-l", help="column in file_to_index containing the labels")],
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path to store the index. Eg: path/to/save/panspace.index")],
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
-        kmer_size: Annotated[int, typer.Option("--kmer-size", "-k",min=1)] = 6,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
         ) -> None:
     import json
@@ -57,8 +57,6 @@ def create_index(
             index_labels.append(label)
             
     # 3. create embeddings
-    # # preprocessing of each FCGR to feed the model 
-    # preprocessing = lambda x: x / x.max() 
 
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
@@ -113,18 +111,16 @@ def create_index(
 @app.command("query", help="Query Index with FCGR from other sequences.")
 def query_index(
         path_fcgr: Annotated[Path, typer.Option("--path-fcgr","-p", help="path to folder with the query FCGR in .npy format, or .txt file with paths in its first column.")],
+        kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")],
         path_encoder: Annotated[Path, typer.Option("--path-encoder","-pe", help="path to 'encoder.keras' model")],
         path_index: Annotated[Path, typer.Option("--path-index", "-pi", help="path where index is stored. Eg: path/to/panspace.index")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", help="directory to save results")],
         col_labels: Annotated[int, typer.Option("--col-labels","-l", help="column with labels (ground_truth) in <path_fcgr>.txt")] = 1,
-        neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 10,
-        batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 10,
-        kmer_size: Annotated[int, typer.Option("--kmer-size","-k", help="kmer size")] = 6,
+        neighbors: Annotated[int, typer.Option("--n-neighbors","-n", help="number of closest neighbors to retrieve")] = 11,
+        batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 16,
         threshold_outlier: Annotated[float, typer.Option("--threshold-outlier","-to", help="Average distance threshold to flag outlier")] = None,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
         ) -> None:
-        # batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR and DeConvFCGR")]=False,
-    # console.print(f":dna: :dna:  reshape_fcgr = {reshape_fcgr} :dna: :dna:")
     import json
     import tensorflow as tf
     import faiss
@@ -190,8 +186,6 @@ def query_index(
     print(encoder.summary())
 
     # 3. create embeddings
-    # # preprocessing of each FCGR to feed the model 
-    # preprocessing = lambda x: x / x.max() 
 
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
@@ -273,75 +267,3 @@ def query_index(
 
     np.save( Path(OUTDIR).joinpath("embeddings.npy") , query_emb )  
     console.print(":dna: Done!")
-
-# @app.command("metrics-test", help="Compute metrics for test.", deprecated=True)
-# def metrics_test_index(
-#             path_experiment: Annotated[Path, typer.Option("--path-experiment","-p", help="path to experiment")],
-#             n_neighbors: Annotated[int, typer.Option("--n-neighbors","-n", min=1, help="path to experiment")],
-#             ) -> None:
-    
-#     import json
-#     import pandas as pd
-
-#     from pathlib import Path
-#     from collections import Counter, namedtuple, defaultdict
-
-#     from sklearn.metrics import (
-#         precision_score, 
-#         recall_score,
-#         accuracy_score, 
-#         balanced_accuracy_score
-#         )
-
-#     N_NEIGHBORS=n_neighbors # 3 # 1 3 5 10 
-#     PATH_EXP=path_experiment
-
-#     # load labels for train+val and test
-#     with open(f"{PATH_EXP}/split-train-val-test.json","r") as fp:
-#         datasets = json.load(fp)
-
-#     # collect info in a dataframe
-#     InfoLabels = namedtuple("InfoLabels",["label","dataset","count"])
-
-#     data = []
-#     for ds in ["train","val","test"]:
-#         count = Counter(datasets["labels"][ds])
-#         for specie, count in count.items():
-#             data.append(
-#                 InfoLabels(specie, ds, count)
-#             )
-
-#     df_infolabels = pd.DataFrame(data)
-
-#     # get dict with count for the test set for later evaluation
-#     counts_test = dict()
-#     for idx, sp, ds, count in df_infolabels.query("dataset == 'test'").to_records("record"):
-#         counts_test[sp] = count
-
-#     counts_train = defaultdict(int)
-#     for idx, sp, ds, count in df_infolabels.query("dataset != 'test'").to_records("record"):
-#         counts_train[sp] += count
-
-#     # load predictions
-#     df = pd.read_csv(Path(PATH_EXP).joinpath("test/test_index.tsv"),sep="\t", index_col=0)
-#     df.head(5)
-
-#     classes = df.GT.unique()
-#     classes = sorted(classes)
-#     y_true, y_pred = df.GT, df[f"consensus_{N_NEIGHBORS}"]
-
-#     accuracy_score(y_true, y_pred), balanced_accuracy_score(y_true, y_pred), len(classes)
-
-#     precision = precision_score(y_true, y_pred, average=None, labels=classes)
-#     recall = recall_score(y_true, y_pred, average=None, labels=classes)
-
-#     data_metrics = []
-#     Metrics = namedtuple("Metrics", ["label","n_queries", "n_index", "precision","recall"])
-#     for sp, prec, rec in zip(classes, precision, recall):
-#         n_queries= counts_test[sp]
-#         n_index = counts_train[sp]
-#         data_metrics.append(
-#             Metrics(sp, n_queries, n_index, prec, rec)
-#         )
-
-#     pd.DataFrame(data_metrics).sort_values(by="precision").to_csv(Path(PATH_EXP).joinpath(f"test/precision_recall_consensus_{N_NEIGHBORS}.csv"),sep="\t")
