@@ -1,49 +1,59 @@
-# Embedding bacterial assemblies
-The goal is to build an embedding space for bacterial sequences and use them as an index of dense vector to perform fast queries using faiss
+# Panspace
+Taxonomy-aware embeddings for rapid querying of prokaryotes pangenomes
 
-## CLI `panspace`
+![panspace](img/panspace.jpg)
 
 `panspace` is a library based on tensorflow and faiss index.
 It provides commands for creating FCGR from kmer counts, train an autoencoder,
 extract Encoder and Decoder from a trained model, and create and query an Index
 of embeddings.
  
-```bash
-git clone git@github.com:pg-space/panspace.git
-cd panspace
-``` 
+## Install the package
+`panspace` requires  python >= 3.9, < 3.11.
 
-### Install the package
-
-To install the package from the `pyproject.toml` file:
-
-#### Install with CPU support
-
-To install the package with CPU support from the `pyproject.toml` file:
-
-```bash
-pip install .[cpu]
-```
-
-To install the package with CPU support directly from the GitHub repository:
+with **CPU** support
 
 ```bash
 pip install "panspace[cpu] @ git+https://github.com/pg-space/panspace.git"
 ```
 
-#### Install with GPU support
-
-To install the package with GPU support from the `pyproject.toml` file:
-
-```bash
-pip install .[gpu]
-```
-
-To install the package with GPU support directly from the GitHub repository:
+with **GPU** support
 
 ```bash
 pip install "panspace[gpu] @ git+https://github.com/pg-space/panspace.git"
 ```
+
+Alternatively, first clone the repository
+
+```bash
+git clone git@github.com:pg-space/panspace.git
+cd panspace
+``` 
+
+with **CPU** support
+```bash
+pip install .[cpu]
+```
+
+or with **GPU** support 
+```bash
+pip install .[gpu]
+```
+
+### Install from conda environment
+with **CPU** support
+```bash
+conda env create -f envs/cpu.yml
+conda activate panspace-cpu
+```
+
+with **GPU** support
+```bash
+conda env create -f envs/gpu.yml
+conda activate panspace-gpu
+```
+
+## CLI
 
 ```bash
 panspace --help 
@@ -68,6 +78,18 @@ Usage: panspace [OPTIONS] COMMAND [ARGS]...
 │ what-to-do       🐱 If you are new here, check this step-by-step guide                                                  │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+## Download `index`
+
+
+
+## Query `index`
+
+
+## Create your own `index`
+
+
+## Query bacterial
 
 ___
 # Author

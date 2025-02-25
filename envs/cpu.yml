@@ -1,4 +1,4 @@
-name: panspace
+name: panspace-cpu
 channels:
   - conda-forge
   - anaconda
