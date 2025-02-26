@@ -18,7 +18,7 @@ app = typer.Typer(rich_markup_mode="rich",
     help="Create FCGRs from fasta file or from txt file with kmers and counts.")
 
 
-@app.command("fcgr2image", help="Save FCGR as image from npy file.")
+@app.command("to-image", help="Save FCGR as image from npy file.")
 def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="r", help="path to .txt file with paths to npy <folder>/<species>/<sampleid>.npy")],
                dir_save: Annotated[Path, typer.Option("--dir-save", "-d", mode="w", help="directory where .jpeg images will be saved")],
                kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
@@ -42,7 +42,7 @@ def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="
         Path(path_save).parent.mkdir(exist_ok=True,parents=True)
         fcgr.save_img(m, path_save)
 
-@app.command("fcgr",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
+@app.command("from-kmer-counts",help="Create the Frequency matrix of CGR (FCGR) from k-mer counts.")
 def create_fcgr_kmc(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-counts","-pk",mode="r", help="path to .txt file with kmer counts.")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
@@ -56,7 +56,7 @@ def create_fcgr_kmc(path_kmer_counts: Annotated[Path, typer.Option("--path-kmer-
     Path(path_save).parent.mkdir(exist_ok=True, parents=True)
     np.save(path_save, m)
 
-@app.command("fcgr-fasta",help="Create the Frequency matrix of CGR (FCGR) from a fasta file.")
+@app.command("from-fasta",help="Create the Frequency matrix of CGR (FCGR) from a fasta file.")
 def create_fcgr_fasta(path_fasta: Annotated[Path, typer.Option("--path-fasta","-pf",mode="r", help="path to .fa file with assembly.")],
                 path_save: Annotated[Path, typer.Option("--path-save","-ps",mode="w", help="path to .npy file to store FCGR.")],
                 kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
@@ -75,7 +75,7 @@ def create_fcgr_fasta(path_fasta: Annotated[Path, typer.Option("--path-fasta","-
     Path(path_save).parent.mkdir(exist_ok=True, parents=True)
     np.save(path_save, m)
 
-@app.command("plot-outliers", help="Create image in jpg format for a list of FCGR")
+# @app.command("plot-outliers", help="Create image in jpg format for a list of FCGR")
 def plot_outliers(path_outliers:  Annotated[Path, typer.Option("--path-outliers","-po",mode="r", help="file with list of outliers .csv")],
             # column_path: Annotated[int, typer.Option("--column-path", "-cp", help="column with path to FCGR in .npy format")] = 1,
             # column_label: Annotated[int, typer.Option("--column-label", "-cl", help="column with label in .npy format")] = 2,

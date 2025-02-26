@@ -1,0 +1,9 @@
+neighbors: 11
+kmer: 7
+path_encoder: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/checkpoints/weights-CNNFCGR.keras
+path_index: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/index/panspace.index
+dir_sequences: sequences
+outdir: output
+gpu: False
+extension: .fa.gz
+# fcgr: /home/avila/Servers/watson/fcgr/fcgr
