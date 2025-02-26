@@ -6,4 +6,6 @@ dir_sequences: sequences
 outdir: output
 gpu: False
 extension: .fa.gz
-# fcgr: /home/avila/Servers/watson/fcgr/fcgr
+
+# for faster queries. Only used by query_fast.smk
+fcgr_bin: /home/avila/Servers/watson/fcgr/fcgr

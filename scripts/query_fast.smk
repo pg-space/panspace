@@ -3,7 +3,7 @@ configfile: "scripts/config.yml"
 
 """
 This script query the index with fasta files in a folder
-The output is a numpy file with the embeddings and a CSV with the top-10 predictions and distances
+The output is a numpy file with the embeddings and a CSV with the top-NEIGHBOR predictions and distances
 """
 
 from pathlib import Path
@@ -17,9 +17,10 @@ DIR_SEQUENCES=config["dir_sequences"]
 EXTENSION=config["extension"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
+FCGRBIN = config["fcgr_bin"]
+OUTDIR.mkdir(exist_ok=True, parents=True)
 
-# TODO: extensions: fasta fa fna
-path_by_seqid  = {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}") } # if p.stem in pfcgr } 
+path_by_seqid  = {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}") } 
 LIST_SEQID = list(path_by_seqid.keys())
 print(LIST_SEQID)
 
@@ -28,46 +29,62 @@ rule all:
         pjoin(OUTDIR, "embeddings.npy"),
         pjoin(OUTDIR, "query.csv")
 
+
 rule count_kmers:
+    output:
+        # temp()
+        pjoin(OUTDIR, "fcgr","{seqid}.kmc_pre"),
+        pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
     input:
         lambda wildcards: path_by_seqid[wildcards.seqid]
-    output:
-        temp(
-        pjoin(OUTDIR, "fcgr","{seqid}.kmer-count.txt")
-            )
     params:
         kmer=KMER_SIZE,
+        prefix=pjoin(OUTDIR, "fcgr","{seqid}")
     conda:
         "envs/kmc.yml"
     log:
         kmc=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
-        dump=OUTDIR.joinpath("logs/count_kmers_dump-{seqid}.log"),
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc" 2> {log.kmc}
-        /usr/bin/time -v kmc_tools -t4 -v transform {input} dump {output} 2> {log.dump}
-        rm -r {input}.kmc_pre {input}.kmc_suf
+        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {params.prefix} "tmp-kmc" 2> {log.kmc}
         """
 
-rule fcgr:
-    input: 
-        pjoin(OUTDIR, "fcgr", "{seqid}.kmer-count.txt")
-    output:
-        pjoin(OUTDIR, "fcgr", "{seqid}.npy")
+
+rule list_path_seqid:
+    input:  
+        expand(
+            pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
+            seqid=LIST_SEQID
+        )
+    output: 
+        pjoin(OUTDIR, "list_path_kmc.txt")
     params:
-        kmer=KMER_SIZE
-    conda: 
-        f"envs/{HARDWARE}.yml"
+        log=OUTDIR.joinpath("logs/list_path_seqid.log"),
+        folder_kmc_output=pjoin(OUTDIR, "fcgr")
+    shell:
+        "ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log} "
+
+
+rule fcgr:
+    input:
+        pjoin(OUTDIR, "list_path_kmc.txt")
+    output:
+        expand(
+            pjoin(OUTDIR, "fcgr", "{seqid}.npy"),
+            seqid=LIST_SEQID,
+            )
+    params:
+        kmer=KMER_SIZE,
+        fcgr_bin=FCGRBIN,
     log:
-        OUTDIR.joinpath("logs/fcgr-{seqid}.log")
+        log=OUTDIR.joinpath("logs/fcgr.log"),
+        err=OUTDIR.joinpath("logs/fcgr.err.log"),
     shell:
         """
-        /usr/bin/time -v panspace fcgr from-kmer-counts \
-            --kmer {params.kmer} \
-            --path-kmer-counts {input} \
-            --path-save {output} 2> {log}
+        /usr/bin/time -vo {log.log} {params.fcgr_bin} {input} 2> {log.err}
         """
+
 
 rule query_index:
     input:
@@ -96,6 +113,7 @@ rule query_index:
             --path-fcgr {params.path_fcgr} \
             --outdir {params.outdir} 2> {log}
         """
+
 
 rule add_path_seq_to_predictions:
     input:
