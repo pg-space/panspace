@@ -14,13 +14,18 @@ KMER_SIZE=config["kmer"]
 PATH_ENCODER=config["path_encoder"]
 PATH_INDEX=config["path_index"]
 DIR_SEQUENCES=config["dir_sequences"]
-EXTENSION=config["extension"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
 FCGRBIN = config["fcgr_bin"]
 OUTDIR.mkdir(exist_ok=True, parents=True)
 
-path_by_seqid  = {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}") } 
+# get list of sequences in DIR_SEQUENCES
+ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
+path_by_seqid = {}
+for EXTENSION in ALLOWED_EXTENSIONS:
+    path_by_seqid.update(
+        {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}")}
+    ) 
 LIST_SEQID = list(path_by_seqid.keys())
 print(LIST_SEQID)
 
@@ -39,15 +44,16 @@ rule count_kmers:
         lambda wildcards: path_by_seqid[wildcards.seqid]
     params:
         kmer=KMER_SIZE,
-        prefix=pjoin(OUTDIR, "fcgr","{seqid}")
+        prefix=pjoin(OUTDIR, "fcgr","{seqid}"),
     conda:
         "envs/kmc.yml"
     log:
-        kmc=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
+        log=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
+        err=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.err.log"),
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {params.prefix} "tmp-kmc" 2> {log.kmc}
+        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
         """
 
 
@@ -60,10 +66,12 @@ rule list_path_seqid:
     output: 
         pjoin(OUTDIR, "list_path_kmc.txt")
     params:
-        log=OUTDIR.joinpath("logs/list_path_seqid.log"),
         folder_kmc_output=pjoin(OUTDIR, "fcgr")
+    log:
+        log=OUTDIR.joinpath("logs/list_path_seqid.log"),
+        err=OUTDIR.joinpath("logs/list_path_seqid.err.log"),
     shell:
-        "ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {params.log} "
+        "/usr/bin/time -vo {log.log} ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log.err}"
 
 
 rule fcgr:
@@ -103,15 +111,16 @@ rule query_index:
         outdir=OUTDIR,
         kmer=KMER_SIZE,
     log:
-        OUTDIR.joinpath("logs/query_index.log")
+        log=OUTDIR.joinpath("logs/query_index.log"),
+        err=OUTDIR.joinpath("logs/query_index.err.log"),
     shell:
         """
-        /usr/bin/time -v panspace index query \
+        /usr/bin/time -vo {log.log} panspace index query \
             --kmer-size {params.kmer} \
             --path-encoder {params.path_encoder} \
             --path-index {params.path_index} \
             --path-fcgr {params.path_fcgr} \
-            --outdir {params.outdir} 2> {log}
+            --outdir {params.outdir} 2> {log.err}
         """
 
 

@@ -96,7 +96,7 @@ Usage: panspace [OPTIONS] COMMAND [ARGS]...
 
 ## Query `index`
 
-We provide a snakemake pipeline to query an index, 
+We provide a **snakemake** pipeline to query a collection of genomes (from a folder), 
 
 1. [install snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html),
 ```bash
@@ -104,13 +104,12 @@ conda create -c conda-forge -c bioconda -n snakemake snakemake
 ```
 
 2. set parameters in `scripts/config.yml`, 
-here you need to provide:
-    - path to a directory with sequences (accepted extensions `.fa.gz`, `.fa`, `.fna`) 
-    - the extension of the sequences (one of the accepted extensions)
-    - define an output directory to save query results
-    - use gpu or cpu
-    - path to the encoder (`<path/to/encoder>.keras`)
-    - path to the index  (<path/to/panspace-index>.index)
+
+    - **directory with sequences** (accepted extensions `.fa.gz`, `.fa`, `.fna`) 
+    - define an **output directory** to save query results
+    - **gpu** or **cpu** usage
+    - path to the **encoder** (`<path/to/encoder>.keras`)
+    - path to the **index**  (<path/to/panspace-index>.index)
 
 finally run
 ```bash

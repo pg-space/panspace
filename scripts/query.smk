@@ -14,11 +14,16 @@ KMER_SIZE=config["kmer"]
 PATH_ENCODER=config["path_encoder"]
 PATH_INDEX=config["path_index"]
 DIR_SEQUENCES=config["dir_sequences"]
-EXTENSION=config["extension"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
 
-path_by_seqid  = {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}") } # if p.stem in pfcgr } 
+# get list of sequences in DIR_SEQUENCES
+ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
+path_by_seqid = {}
+for EXTENSION in ALLOWED_EXTENSIONS:
+    path_by_seqid.update(
+        {p.stem: str(p) for p in Path(DIR_SEQUENCES).rglob(f"*{EXTENSION}")}
+    ) 
 LIST_SEQID = list(path_by_seqid.keys())
 print(LIST_SEQID)
 
@@ -59,13 +64,14 @@ rule fcgr:
     conda: 
         f"envs/{HARDWARE}.yml"
     log:
-        OUTDIR.joinpath("logs/fcgr-{seqid}.log")
+        std=OUTDIR.joinpath("logs/fcgr-{seqid}.log"),
+        err=OUTDIR.joinpath("logs/fcgr-{seqid}.err.log"),
     shell:
         """
-        /usr/bin/time -v panspace fcgr from-kmer-counts \
+        /usr/bin/time -vo {log.std} panspace fcgr from-kmer-counts \
             --kmer {params.kmer} \
             --path-kmer-counts {input} \
-            --path-save {output} 2> {log}
+            --path-save {output} 2> {log.err}
         """
 
 rule query_index:
@@ -85,15 +91,16 @@ rule query_index:
         outdir=OUTDIR,
         kmer=KMER_SIZE,
     log:
-        OUTDIR.joinpath("logs/query_index.log")
+        std=OUTDIR.joinpath("logs/query_index.log"),
+        err=OUTDIR.joinpath("logs/query_index..err.log"),
     shell:
         """
-        /usr/bin/time -v panspace index query \
+        /usr/bin/time -vo {log.std} panspace index query \
             --kmer-size {params.kmer} \
             --path-encoder {params.path_encoder} \
             --path-index {params.path_index} \
             --path-fcgr {params.path_fcgr} \
-            --outdir {params.outdir} 2> {log}
+            --outdir {params.outdir} 2> {log.err}
         """
 
 rule add_path_seq_to_predictions:

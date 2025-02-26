@@ -5,7 +5,6 @@ path_index: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7me
 dir_sequences: sequences
 outdir: output
 gpu: False
-extension: .fa.gz
 
 # for faster queries. Only used by query_fast.smk
 fcgr_bin: /home/avila/Servers/watson/fcgr/fcgr
