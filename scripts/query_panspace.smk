@@ -32,9 +32,9 @@ rule count_kmers:
     input:
         lambda wildcards: path_by_seqid[wildcards.seqid]
     output:
-        # temp(
+        temp(
         pjoin(OUTDIR, "fcgr","{seqid}.kmer-count.txt")
-            # )
+            )
     params:
         kmer=KMER_SIZE,
     conda:
