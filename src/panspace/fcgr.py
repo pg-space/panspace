@@ -32,7 +32,7 @@ def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="
     paths = []
     with open(list_npy, "r") as fp:
         for line in fp.readlines():
-            paths.append(line.replace("\n").strip())
+            paths.append(line.replace("\n","").strip())
 
     for idx, path_npy in track(paths):
         m = np.load(path_npy)
