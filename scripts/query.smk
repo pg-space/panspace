@@ -50,7 +50,7 @@ rule count_kmers:
         """
         mkdir -p tmp-kmc
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc" 2> {log.kmc}
-        /usr/bin/time -v kmc_tools -t4 -v transform {input} dump {output} 2> {log.dump}
+        /usr/bin/time -v kmc_tools -t2 -v transform {input} dump {output} 2> {log.dump}
         rm -r {input}.kmc_pre {input}.kmc_suf
         """
 

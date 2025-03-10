@@ -53,7 +53,7 @@ rule count_kmers:
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
+        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t2 -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
         """
 
 

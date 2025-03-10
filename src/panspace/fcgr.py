@@ -34,7 +34,7 @@ def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="
         for line in fp.readlines():
             paths.append(line.replace("\n","").strip())
 
-    for idx, path_npy in track(paths):
+    for path_npy in track(paths):
         m = np.load(path_npy)
         sampleid = Path(path_npy).stem
         batch = Path(path_npy).parent
