@@ -18,6 +18,7 @@ OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
 FCGRBIN = config["fcgr_bin"]
 OUTDIR.mkdir(exist_ok=True, parents=True)
+KMC_THREADS=config["kmc_threads"]
 
 # get list of sequences in DIR_SEQUENCES
 ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
@@ -45,6 +46,8 @@ rule count_kmers:
     params:
         kmer=KMER_SIZE,
         prefix=pjoin(OUTDIR, "fcgr","{seqid}"),
+    threads:
+        KMC_THREADS,
     conda:
         "envs/kmc.yml"
     log:
@@ -53,7 +56,7 @@ rule count_kmers:
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t2 -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
+        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t{threads} -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
         """
 
 

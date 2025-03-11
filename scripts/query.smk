@@ -16,6 +16,7 @@ PATH_INDEX=config["path_index"]
 DIR_SEQUENCES=config["dir_sequences"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
+KMC_THREADS=config["kmc_threads"]
 
 # get list of sequences in DIR_SEQUENCES
 ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
@@ -41,6 +42,8 @@ rule count_kmers:
             )
     params:
         kmer=KMER_SIZE,
+    threads:
+        KMC_THREADS,
     conda:
         "envs/kmc.yml"
     log:
@@ -49,8 +52,8 @@ rule count_kmers:
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t4 -fm {input} {input} "tmp-kmc" 2> {log.kmc}
-        /usr/bin/time -v kmc_tools -t2 -v transform {input} dump {output} 2> {log.dump}
+        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t{threads} -fm {input} {input} "tmp-kmc" 2> {log.kmc}
+        /usr/bin/time -v kmc_tools -t{threads} -v transform {input} dump {output} 2> {log.dump}
         rm -r {input}.kmc_pre {input}.kmc_suf
         """
 
