@@ -12,7 +12,7 @@
 3. Finally, the _embedding_ --the compressed representation of the input genome-- is used to query an index of these vectors representing a bacterial pangenome. 
 
 <div align="center">
-    <img src="img/panspace-query.png" width="1000" height="550">
+    <img src="img/panspace-query.png" width="1000" height="530">
 </div>
 
 The library is based on tensorflow and faiss index.
