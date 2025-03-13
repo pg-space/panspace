@@ -1,10 +1,10 @@
 workdir: "."
 configfile: "scripts/config.yml"
 
-
 """
 This script creates fcgr from AllTheBacteria dataset saved as bacthes in <batch_name>.asm.tar.xz
 It requires that all tar.xz files are stores in <datadir>/batches/<batch_name>.asm.tar.xz
+The fcgr will be saved in <datadir>/fcgr/<kmer_size>mer/<batch_name>
 """
 
 import json
@@ -21,7 +21,7 @@ SUBSET=config["subset"]
 ### ---- FCGR ----
 def load_batches(subset):
     list_files=[]
-    with open(f"data/allthebacteria_{subset}.txt") as fp:
+    with open(DATADIR.joinpath(f"allthebacteria_{subset}.txt") as fp:
         
         for line in fp.readlines():
             tarxz = line.replace("\n","").strip().split(" ")
@@ -29,8 +29,9 @@ def load_batches(subset):
             list_files.append(name)
     return list_files
 
+print("H0ola")
 TARFILES=load_batches(SUBSET)
-# print(TARFILES)
+print(TARFILES)
 
 rule fcgr_verification:
     input:
@@ -71,11 +72,6 @@ rule count_kmers:
         "envs/kmc.yml"
     threads:
         config["kmc_threads"],
-    # resources:
-        # limit_space=1,
-        # disk_mb=20_000_000,
-    # priority:
-    #     100
     shell:
         """
         /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} . 2> {log}
