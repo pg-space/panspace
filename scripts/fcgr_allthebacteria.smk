@@ -21,10 +21,10 @@ SUBSET=config["subset"]
 ### ---- FCGR ----
 def load_batches(subset):
     list_files=[]
-    with open(DATADIR.joinpath(f"allthebacteria_{subset}.txt") as fp:
-        
+    with open(DATADIR.joinpath(f"allthebacteria_{subset}.txt")) as fp:
         for line in fp.readlines():
-            tarxz = line.replace("\n","").strip().split(" ")
+            print(line)
+            tarxz = line.replace("\n","").strip()
             name = tarxz.replace(".asm.tar.xz","")
             list_files.append(name)
     return list_files
@@ -35,9 +35,9 @@ print(TARFILES)
 
 rule fcgr_verification:
     input:
-        expand( pjoin(DIRFCGR,"{tarfile}_fcgr.flag"), tarfile=TARFILES)
+        expand(pjoin(DIRFCGR,"{tarfile}_fcgr.flag"), tarfile=TARFILES)
 
-# outut fasta files in assembly/ directory
+# output fasta files in assembly/ directory
 checkpoint decompress_tarxz:
     input: 
         tarfile=pjoin(DATADIR, "batches", "{tarfile}.asm.tar.xz"),
@@ -78,14 +78,13 @@ rule count_kmers:
         rm -r {input}
         """
 
-
-def aggregate_fasta_kmc(wildcards,):
+def aggregate_fasta_kmc(wildcards):
     "Helper function to collect all .kmc_suf files resulting from running KMC on the set of assemblies of a tarfile"
     
     output_tarfile = checkpoints.decompress_tarxz.get(**wildcards).output[0]
-    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
+    list_fasta = glob_wildcards(pjoin(output_tarfile, "{fasta}.fa")).fasta
     outdir = pjoin(DATADIR, "kmer-count",f"{wildcards.tarfile}")
-    return expand( pjoin(outdir,"{fasta}.kmc_suf"), fasta=list_fasta)    
+    return expand(pjoin(outdir,"{fasta}.kmc_suf"), fasta=list_fasta)    
 
 rule list_path_fasta:
     input:  
@@ -102,7 +101,6 @@ rule list_path_fasta:
         """
         /usr/bin/time -v ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log}
         """
-
 
 checkpoint save_fcgr_as_numpy:
     input:
@@ -125,20 +123,18 @@ checkpoint save_fcgr_as_numpy:
         mv {params.kmerdir}/*.npy {params.fcgrdir}
         """
 
-
-def aggregate_numpy_fcgr(wildcards,):
+def aggregate_numpy_fcgr(wildcards):
     "Helper function to collect all FCGR .npy files generated for a set of assemblies of a tarfile"
     
     output_tarfile = checkpoints.save_fcgr_as_numpy.get(**wildcards).output[0]
-    list_fasta = glob_wildcards( pjoin(output_tarfile, "{fasta}.fa") ).fasta
-    return expand( pjoin(DIRFCGR, f"{wildcards.tarfile}", "{fasta}.npy"), fasta=list_fasta)    
-
+    list_fasta = glob_wildcards(pjoin(output_tarfile, "{fasta}.fa")).fasta
+    return expand(pjoin(DIRFCGR, f"{wildcards.tarfile}", "{fasta}.npy"), fasta=list_fasta)    
 
 rule fcgr_aggregate:
     input: 
         aggregate_numpy_fcgr
     output: 
-        touch( pjoin(DIRFCGR, "{tarfile}_fcgr.flag"))
+        touch(pjoin(DIRFCGR, "{tarfile}_fcgr.flag"))
     priority:
         200
     params:     
@@ -149,4 +145,4 @@ rule fcgr_aggregate:
         """
         rm -rf {params.kmerdir}
         rm -rf {params.dir_assemblies}
-        ""
+        """
