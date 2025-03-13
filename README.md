@@ -39,6 +39,7 @@ cd panspace
 ```bash
 conda create -c conda-forge -c bioconda -n snakemake snakemake
 conda activate snakemake
+conda config --set channel_priority strict
 ```
 
 2. set parameters in `scripts/config.yml`, 
@@ -69,7 +70,7 @@ snakemake -s scripts/query_fast.smk --cores 8 --use-conda --config fcgr_bin=<pat
 ```
 
 _NOTES_ 
-- change the number of cores (`--cores <NUM_CORES>`) if you have more availables, this will allow the parallelization of k-mer counts from assemblies done by [KMC3](https://github.com/refresh-bio/KMC).
+- change the number of cores (`--cores <NUM_CORES>`) if you have more availables, this will allow the parallelization of k-mer counts from assemblies done by [KMC3](https://github.com/refresh-bio/KMC) (by default `kmc_threads: 2`, see `scripts/config.yml`).
 - This extension constructs FCGR representations with a C++ extending KMC3 output. The default version parses the output of KMC as a dictionary of k-mer counts and then uses the python library [ComplexCGR](https://github.com/AlgoLab/complexCGR) for the construction of the FCGR. 
 
 ## Create your own `encoder` and `index`
