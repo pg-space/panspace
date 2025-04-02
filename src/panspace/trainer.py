@@ -500,6 +500,7 @@ def train_metric_learning(
         kmer: Annotated[int, typer.Option(min=6, help="kmer used to create the FCGR that will be used to train the model.")],
         outdir: Annotated[Path, typer.Option(help="directory to save experiment results")] = "output-training",
         architecture: Annotated[ModelMetricLearning, typer.Option(help="name of the model to be used for training")] = ModelMetricLearning.CNNFCGR.value,
+        convfcgr_level: Annotated[int, typer.Option(min=1, help="level parameter to define the ConvFCGR layer. Only used with CNNFCGR and CNNFCGR_Dropout architectures")] = 1,
         latent_dim: Annotated[int, typer.Option(min=2, help="number of dimension embedding space")] = 256, 
         hidden_activation: Annotated[Activation,typer.Option(help="activation function for hidden layers")]=Activation.Relu.value,
         batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR")]=False,
@@ -527,7 +528,7 @@ def train_metric_learning(
     import tensorflow as tf
     import tensorflow_addons as tfa
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
-    from .dnn.loaders.generator_batches import generator_balanced_triplet_batches, generator_balanced_batches
+    from .dnn.loaders.generator_batches import generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout
     from collections import defaultdict
@@ -656,6 +657,7 @@ def train_metric_learning(
                     hidden_activation='{hidden_activation}', 
                     kmer={kmer}, 
                     batch_normalization={batch_normalization},
+                    level={convfcgr_level},
                     )""")    
     elif ARCHITECTURE == "ResNet50":
         model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 

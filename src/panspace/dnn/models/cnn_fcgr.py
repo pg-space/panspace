@@ -14,6 +14,7 @@ def CNNFCGR(latent_dim: int = 128,
             hidden_activation="relu", 
             kmer: int = 6, 
             batch_normalization: bool = True,
+            level: int = 1,
             ):
 
     # Input layer (2**k x 2**k x 1)    
@@ -22,8 +23,6 @@ def CNNFCGR(latent_dim: int = 128,
     input_ = tf.keras.layers.Input(shape=(rows,cols,1), name="input_encoder")
     x = input_
     
-    # ConvFCGR(level)
-    level=1
     kernel_size = 2**level
     stride = 2**level
 

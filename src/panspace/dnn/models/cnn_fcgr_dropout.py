@@ -15,6 +15,7 @@ def CNNFCGR_Dropout(latent_dim: int = 128,
             kmer: int = 6, 
             batch_normalization: bool = True,
             dropout_rate: float = 0.2,
+            level: int = 1,
             ):
 
     # Input layer (2**k x 2**k x 1)    
@@ -24,7 +25,6 @@ def CNNFCGR_Dropout(latent_dim: int = 128,
     x = input_
     
     # ConvFCGR(level)
-    level=1
     kernel_size = 2**level
     stride = 2**level
 

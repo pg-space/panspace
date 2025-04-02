@@ -2,7 +2,9 @@
     <img src="img/panspace-logo.png" width="450" height="300">
 </div>
 
-# Taxonomy-aware embeddings for rapid querying of prokaryotes pangenomes
+# `panspace` 
+
+**Related Article** [PanSpace: Fast and Scalable Indexing for Massive Bacterial Databases](https://doi.org/10.1101/2025.03.19.644115)
 
 `panspace` is a library for creating and querying vector based indexes for bacterial genome (draft) assemblies.
 
