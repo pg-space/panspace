@@ -917,3 +917,31 @@ def extract_backbone_one_shot_model(
 
     print(f"Saving embedding model to {path_save}")
     embedding_extractor.save(path_save)
+
+@app.command("show-architecture", help="show architecture of the model")
+def show_architecture(
+        architecture: Annotated[ModelMetricLearning, typer.Option("--architecture","-a", help="name of the model to be used for training")] = ModelMetricLearning.CNNFCGR.value,
+        convfcgr_level: Annotated[int, typer.Option("--convfcgr-level","-l", min=1, help="level parameter to define the ConvFCGR layer. Only used with CNNFCGR and CNNFCGR_Dropout architectures")] = 1,
+        kmer: Annotated[int, typer.Option("--kmer-size","-k", min=6, help="kmer used to create the FCGR that will be used to train the model.")]=8,
+        latent_dim: Annotated[int, typer.Option("--latent-dim","-d", min=2, help="number of dimension embedding space")] = 128, 
+        hidden_activation: Annotated[Activation,typer.Option("--hidden-activation", "-ha", help="activation function for hidden layers")]=Activation.Relu.value,
+        batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR")]=False,
+        ) -> None:
+    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout
+    # Load and train model
+    if architecture in ["CNNFCGR","CNNFCGR_Dropout"]:
+        model=eval(f"""{architecture}(latent_dim = {latent_dim}, 
+                    hidden_activation='{hidden_activation}', 
+                    kmer={kmer}, 
+                    batch_normalization={batch_normalization},
+                    level={convfcgr_level},
+                    )""")    
+    elif architecture == "ResNet50":
+        model=eval(f"""{architecture}(latent_dim = {latent_dim}, 
+                    hidden_activation='{hidden_activation}', 
+                    kmer={kmer},
+                    )""")
+    else:
+        raise Exception("Model not found")
+    
+    print(model.summary())
