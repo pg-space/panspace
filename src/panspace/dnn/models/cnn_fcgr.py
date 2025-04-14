@@ -34,8 +34,13 @@ def CNNFCGR(latent_dim: int = 128,
             
         if batch_normalization:
             x = tf.keras.layers.BatchNormalization(axis=-1)(x)
-        small_kmer -=1
 
+        # force to stop in k=3 so that the output has more than 1024 features
+        if (small_kmer - level) <= 4:
+            small_kmer = 3
+        else:
+            small_kmer -= level
+        
     # Embedding Space
     x = tf.keras.layers.Flatten()(x)
     x = tf.keras.layers.Dense(latent_dim, activation=hidden_activation, name="output_dense")(x)

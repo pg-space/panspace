@@ -666,6 +666,8 @@ def train_metric_learning(
                     )""")
     else:
         raise Exception("Model not found")
+
+    print(model.summary())
     
     # TODO: load pre-trained weights
     if path_weights is not None:
