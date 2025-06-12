@@ -10,4 +10,8 @@ kmc_threads: 2
 # for faster queries. Only used by query_fast.smk
 fcgr_bin: /home/avila/Servers/watson/fcgr/fcgr
 fcgr_mask_bin: /home/avila/Servers/watson/fcgr-mask/fcgr/fcgr
-mask: "1111000000001111"
+mask: "111100000001111"
+# "111100011000011"
+# "111100011010001"
+# "111000101010101"
+  
