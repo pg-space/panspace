@@ -1,16 +1,16 @@
-dir_sequences: /home/avila/Servers/watson/data/raw-fasta
-outdir: /home/avila/Servers/watson/data/output-fcgr-mask
+dir_sequences: "/home/avila/Servers/watson/data/raw-fasta"
+subset: "test"
+outdir: "/home/avila/Servers/watson/data/output-fcgr-full"
 kmc_threads: 2
 
 # for faster queries. Only used by query_fast.smk
-bin_fcgr_mask: /home/avila/Servers/watson/fcgr-mask/fcgr/fcgr
+bin_fcgr_mask: "/home/avila/Servers/watson/fcgr-mask/fcgr/fcgr"
 mask: 
-  # - "11111111"
-  - "111100000001111"
-  - "111100011000011"
-  - "111100011010001"
-  - "111000101010101"
-
+  - "11111111"
+  # - "111100000001111"
+  # - "111100011000011"
+  # - "111100011010001"
+  # - "111000101010101"
 
 # dir_sequences = "/home/avila/Servers/watson/data/raw-fasta"
 # outdir = "/home/avila/Servers/watson/data/output-fcgr-mask"
