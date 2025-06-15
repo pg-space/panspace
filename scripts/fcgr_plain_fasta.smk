@@ -14,16 +14,16 @@ from os.path import join as pjoin
 from pathlib import Path
 
 # params
-MASK=str(config["mask"])
-print("Mask:", MASK, type(MASK))
-KMER=sum([int(x) for x in MASK])  # kmer size of the FCGR, from the mask
+MASKS=config["mask"]
+print("Mask:", MASKS, type(MASKS))
+print(MASKS[0])
+KMER=sum([int(x) for x in MASKS[0]])  # kmer size of the FCGR, from the mask
 print("Kmer size:", KMER)
-KMER_KMC = len(MASK)  # kmer size needed to use KMC
+KMER_KMC = len(MASKS[0])  # kmer size needed to use KMC
 print("Kmer size for KMC:", KMER_KMC)
 
-DATADIR=Path(dir_sequences)
-OUTDIR=Path(outdir)
-DIRFCGR=OUTDIR.joinpath(f"fcgr-mask{MASK}/{KMER}mer")
+DATADIR=Path(config["dir_sequences"]) #Path(dir_sequences)
+OUTDIR=Path(config["outdir"]) #Path(outdir)
 SUBSET="test"#config["subset"]
 
 # Find all folders in <dir_sequences> directory
@@ -42,7 +42,8 @@ print(BATCHES)
 
 rule all:
     input:
-        expand(pjoin(OUTDIR, "{batch_name}.flag"), batch_name=BATCHES)
+        # expand(pjoin(OUTDIR, "{batch_name}_{mask}.flag"), batch_name=BATCHES, mask=MASKS)
+        expand(pjoin(OUTDIR, "flags", "all-masks-{batch_name}.flag"), batch_name=BATCHES)
 
 # -- 1. Count k-mers
 # store KMC output (.kmc_pre and .kmc_suf) in fcgr/ directory
@@ -69,24 +70,23 @@ rule count_kmers:
         /usr/bin/time -v kmc -v -k{params.kmer} -m{params.mem_gb} -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} . 2> {log}
         """
 
+
+# -- 2. create list of kmc files to run fcgr tool
 all_fastas = glob_wildcards(pjoin(DATADIR, "{batch_name}", "{fasta}.fa"))
 
 def get_kmc_sufs(wildcards):
-    # Get all fastas for this batch_name
     fastas = [f for b, f in zip(all_fastas.batch_name, all_fastas.fasta) if b == wildcards.batch_name]
     return expand(pjoin(OUTDIR, "kmer-count", "{batch_name}", "{fasta}.kmc_suf"),
                   batch_name=wildcards.batch_name,
                   fasta=fastas)
 
-rule list_path_fasta:
+rule list_path_kmc_output:
     input:  
         get_kmc_sufs
     output: 
         pjoin(OUTDIR, "list_path_kmc_{batch_name}.txt")
     params:
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.batch_name}"),
-        fcgrdir=lambda w: pjoin(DIRFCGR,f"{w.batch_name}"),
-        parent_fcgrdir = lambda w: DIRFCGR
     log:
         DATADIR.joinpath("logs/list_path_fasta-{batch_name}.log")
     shell:
@@ -94,46 +94,60 @@ rule list_path_fasta:
         /usr/bin/time -v ls {params.kmerdir}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log}
         """
 
-## -- 3. create FCGR as numpy files with 'fcgr' using mask tool
+## -- 3. create FCGR as numpy files with 'fcgr' tool using one mask
 checkpoint save_fcgr_as_numpy:
     input:
         pjoin(OUTDIR, "list_path_kmc_{batch_name}.txt")
     output:
-        directory(pjoin(DIRFCGR, "{batch_name}"))
+        directory(pjoin(OUTDIR.joinpath("fcgr-mask{mask}"), "{batch_name}"))
     params:
         kmer=KMER,
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.batch_name}"),
-        fcgrdir=lambda w: pjoin(DIRFCGR, f"{w.batch_name}"),
+        fcgrdir=lambda w: pjoin(OUTDIR.joinpath(f"fcgr-mask{w.mask}"), f"{w.batch_name}"),
         bin_fcgr=config["bin_fcgr_mask"],
-        mask=config["mask"],
+        # mask=config["mask"],
     log:
-        DATADIR.joinpath("logs/fcgr-{batch_name}.log")
+        DATADIR.joinpath("logs/fcgr-{batch_name}_{mask}.log")
     priority:
         100
     shell:
         """
-        /usr/bin/time -v {params.bin_fcgr} -m {params.mask} {input} 2> {log}
         mkdir -p {params.fcgrdir}
-        mv {params.kmerdir}/*.npy {params.fcgrdir}
+        /usr/bin/time -v {params.bin_fcgr} -m {wildcards.mask} -o {params.fcgrdir} {input} 2> {log}
         """
+        # mv {params.kmerdir}/*.npy {params.fcgrdir}
 
+# -- 4. create a flag to check that all FCGR for a given mask were created
 def aggregate_numpy_fcgr(wildcards):
     "Helper function to collect all FCGR .npy files generated for a set of assemblies of a folder"
     
     output_batch = checkpoints.save_fcgr_as_numpy.get(**wildcards).output[0]
     list_fasta = glob_wildcards(pjoin(output_batch, "{fasta}.fa")).fasta
-    return expand(pjoin(DIRFCGR, f"{wildcards.batch_name}", "{fasta}.npy"), fasta=list_fasta)    
+    return expand(pjoin(OUTDIR.joinpath(f"fcgr-mask{wildcards.mask}"), f"{wildcards.batch_name}", "{fasta}.npy"), fasta=list_fasta)    
 
-rule fcgr_aggregate:
+# check that FCGR were created for each batch-mask pair
+rule fcgr_aggregate_mask:
     input: 
         aggregate_numpy_fcgr
     output: 
-        touch(pjoin(OUTDIR, "{batch_name}.flag"))
+        touch(pjoin(OUTDIR, "flags","{batch_name}-mask-{mask}.flag"))
     priority:
         200
     params:     
         kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.batch_name}"),
     shell:
+        "echo 'hola'"
+
+# check that FCGR were created for ALL MASKS for one batch, and delete kmer counts
+rule fcgr_aggregate_all_masks:
+    input:
+        [ pjoin(OUTDIR, "flags", f"{{batch_name}}-mask-{mask}.flag") for mask in MASKS ],
+    output:
+        touch(pjoin(OUTDIR, "flags", "all-masks-{batch_name}.flag"))
+    params:     
+        kmerdir=lambda w: pjoin(OUTDIR,"kmer-count",f"{w.batch_name}"),
+    shell:
         """
+        echo 'listo para todas las mascaras'
         rm -rf {params.kmerdir}
         """
