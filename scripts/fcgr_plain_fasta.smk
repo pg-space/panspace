@@ -24,7 +24,7 @@ print("Kmer size for KMC:", KMER_KMC)
 
 DATADIR=Path(config["dir_sequences"]) #Path(dir_sequences)
 OUTDIR=Path(config["outdir"]) #Path(outdir)
-SUBSET="test3"#config["subset"]
+SUBSET=config["subset"]
 
 # Find all folders in <dir_sequences> directory
 def load_batches(subset):
