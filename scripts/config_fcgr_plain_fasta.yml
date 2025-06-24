@@ -1,10 +1,10 @@
-dir_sequences: "/data/proj/panspace-paper/gsearch/data/sequences"
+dir_sequences: "/home/avila/Servers/watson/data/raw-fasta"
 subset: "test"
-outdir: "/data/proj/panspace-paper/panspace-data/fcgr-mask"
+outdir: "/home/avila/Servers/watson/panspace/output-fcgr-masks"
 kmc_threads: 2
 
 # for faster queries. Only used by query_fast.smk
-bin_fcgr_mask: "/data/proj/panspace-paper/panspace-data/fcgr/fcgr"
+bin_fcgr_mask: "/home/avila/Servers/watson/fcgr-mask/fcgr/fcgr"
 mask: 
   # - "11111111"
   - "111100000001111"
