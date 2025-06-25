@@ -65,10 +65,11 @@ rule count_kmers:
         config["kmc_threads"],
     resources:
         mem_mb=16_000,
+    retries: 2,
     shell:
         """
         mkdir -p {params.tmp_dir}
-        /usr/bin/time -v kmc -v -k{params.kmer} -m{params.mem_gb} -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} {params.tmp_dir} 2> {log}
+        timeout 10s /usr/bin/time -v kmc -v -k{params.kmer} -m{params.mem_gb} -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} {params.tmp_dir} 2> {log}
         """
 
 # -- 2. create list of kmc files to run fcgr tool
