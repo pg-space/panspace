@@ -2,6 +2,9 @@
 .snakemake/
 *.ipynb_checkpoints/
 .vscode/
+tmp_kmc/
+*plots*/
+
 # environment
 env/
 

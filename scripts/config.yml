@@ -1,11 +1,17 @@
 neighbors: 11
-kmer: 7
+kmer: 16
 path_encoder: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/checkpoints/weights-CNNFCGR.keras
 path_index: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/index/panspace.index
 dir_sequences: sequences
-outdir: output
+outdir: output-mask
 gpu: False
 kmc_threads: 2
 
 # for faster queries. Only used by query_fast.smk
 fcgr_bin: /home/avila/Servers/watson/fcgr/fcgr
+fcgr_mask_bin: /home/avila/Servers/watson/fcgr-mask/fcgr/fcgr
+mask: "111100000001111"
+# "111100011000011"
+# "111100011010001"
+# "111000101010101"
+  

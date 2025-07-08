@@ -21,7 +21,8 @@ app = typer.Typer(rich_markup_mode="rich",
 @app.command("to-image", help="Save FCGR as image from npy file.")
 def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="r", help="path to .txt file with paths to npy <folder>/<species>/<sampleid>.npy")],
                dir_save: Annotated[Path, typer.Option("--dir-save", "-d", mode="w", help="directory where .jpeg images will be saved")],
-               kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6) -> None:
+               kmer: Annotated[int, typer.Option("--kmer","-k",min=1)] = 6,
+               percentile_clip: Annotated[int, typer.Option("--percentile-clip", "-p", min=0, max=100, help="percentile to define upper bound to clip FCGR values")] = 0) -> None:
     
     import numpy as np
     from complexcgr import FCGR
@@ -36,6 +37,11 @@ def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="
 
     for path_npy in track(paths):
         m = np.load(path_npy)
+
+        if percentile_clip>0: 
+            perc = np.percentile(m, percentile_clip)
+            m[m > perc] = perc
+
         sampleid = Path(path_npy).stem
         batch = Path(path_npy).parent
         path_save = dir_save.joinpath(f"{kmer}mer/{batch}/{sampleid}.jpeg")

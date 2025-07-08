@@ -36,7 +36,7 @@ def CNNFCGR(latent_dim: int = 128,
             x = tf.keras.layers.BatchNormalization(axis=-1)(x)
 
         # force to stop in k=3 so that the output has more than 1024 features
-        if (small_kmer - level) <= 4:
+        if (small_kmer - level) < 4:
             small_kmer = 3
         else:
             small_kmer -= level
