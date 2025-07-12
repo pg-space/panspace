@@ -557,7 +557,7 @@ def train_metric_learning(
         def preprocessing(x,y):
             "clip and rescale [0,1]"
             # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, 90.0)
+            percentile = tfp.stats.percentile(x, percentile_clip)
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
             # Rescale the x to [0, 1]
@@ -570,7 +570,7 @@ def train_metric_learning(
         def preprocessing(x,y):
             "clip"
             # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, 90.0)
+            percentile = tfp.stats.percentile(x, percentile_clip)
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
             return x_clipped
