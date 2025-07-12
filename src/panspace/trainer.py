@@ -516,6 +516,7 @@ def train_metric_learning(
         path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
         factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
         weighted_loader: Annotated[bool, typer.Option("--weighted-loader", "-wl",help="If set, batches will be created weightening classes by representatitity, otherwise, random selection will be used.")]=False,
+        percentile_clip: Annotated[float, typer.Option("--percentile-clip","-pclip",min=0.0, max=1.0)] = 0.9,
         ) -> None:
     
     """
@@ -524,14 +525,16 @@ def train_metric_learning(
     assert batch_size % num_classes_per_batch == 0, "--batch-size must be divisible by --num-classes-per-batch" 
     print(f"Training neural network of type: {architecture.value}")
 
-    # assert any([datadir is not None, training_list is not None]), "Missing INFO: at least one of --datadir or --training-list must be provided."
+    from collections import defaultdict
+    
     import tensorflow as tf
     import tensorflow_addons as tfa
+    import tensorflow_probability as tfp
+
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
     from .dnn.loaders.generator_batches import generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
     from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout, CNNFCGR_Levels
-    from collections import defaultdict
 
     # parameters train
     ARCHITECTURE=architecture
@@ -546,9 +549,31 @@ def train_metric_learning(
     if preprocessing == "distribution":
         # sum = 1
         preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
-    else: 
+    elif preprocessing == "scale_zero_one": 
         # scale [0,1]
         preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
+    elif preprocessing == "clip_scale_zero_one":
+
+        def preprocessing(x,y):
+            "clip and rescale [0,1]"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, 90.0)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            # Rescale the x to [0, 1]
+            max_val = tf.reduce_max(x_clipped)
+            x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
+            return x_rescaled, y
+        
+    elif preprocessing == "clip":
+        
+        def preprocessing(x,y):
+            "clip"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, 90.0)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            return x_clipped
 
     # ------ data split: training + validation ------
 
