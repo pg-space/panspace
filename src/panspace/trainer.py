@@ -573,7 +573,7 @@ def train_metric_learning(
             percentile = tfp.stats.percentile(x, percentile_clip)
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
-            return x_clipped
+            return x_clipped, y
 
     # ------ data split: training + validation ------
 
