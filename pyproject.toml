@@ -31,11 +31,13 @@ dependencies = [
 cpu = [
     "tensorflow==2.15.1",
     "tensorflow-addons==0.23.0",
+    "tensorflow-probability==0.25.0",
     "faiss-cpu==1.7.2",
 ]
 gpu = [
     "tensorflow[and-cuda]==2.15.1",
     "tensorflow-addons==0.23.0",
+    "tensorflow-probability==0.25.0",
     "faiss-gpu==1.7.2",
 ]
 
