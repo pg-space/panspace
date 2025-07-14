@@ -72,10 +72,15 @@ def create_index(
             "clip and rescale [0,1]"
             # Compute the 90th percentile
             percentile = tfp.stats.percentile(x, percentile_clip)
+
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
+            x_clipped = tf.cast(x_clipped, tf.float32)
+
             # Rescale the x to [0, 1]
             max_val = tf.reduce_max(x_clipped)
+            max_val = tf.cast(max_val, tf.float32)
+
             x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
             return x_rescaled
         
