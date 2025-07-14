@@ -59,16 +59,16 @@ def create_index(
             index_labels.append(label)
             
     # 3. create embeddings
-    # preprocessing of each FCGR to feed the model 
+        # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
+        preprocessing = lambda x: x / tf.math.reduce_sum(x)   
     elif preprocessing == "scale_zero_one": 
         # scale [0,1]
-        preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
+        preprocessing = lambda x: x / tf.math.reduce_max(x)
     elif preprocessing == "clip_scale_zero_one":
 
-        def preprocessing(x,y):
+        def preprocessing(x):
             "clip and rescale [0,1]"
             # Compute the 90th percentile
             percentile = tfp.stats.percentile(x, percentile_clip)
@@ -77,17 +77,17 @@ def create_index(
             # Rescale the x to [0, 1]
             max_val = tf.reduce_max(x_clipped)
             x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
-            return x_rescaled, y
+            return x_rescaled
         
     elif preprocessing == "clip":
         
-        def preprocessing(x,y):
+        def preprocessing(x):
             "clip"
             # Compute the 90th percentile
             percentile = tfp.stats.percentile(x, percentile_clip)
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
-            return x_clipped, y
+            return x_clipped
         
     # compute embeddings
     index_data = DataLoader(
@@ -216,13 +216,13 @@ def query_index(
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
+        preprocessing = lambda x: x / tf.math.reduce_sum(x)   
     elif preprocessing == "scale_zero_one": 
         # scale [0,1]
-        preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
+        preprocessing = lambda x: x / tf.math.reduce_max(x)
     elif preprocessing == "clip_scale_zero_one":
 
-        def preprocessing(x,y):
+        def preprocessing(x):
             "clip and rescale [0,1]"
             # Compute the 90th percentile
             percentile = tfp.stats.percentile(x, percentile_clip)
@@ -231,17 +231,17 @@ def query_index(
             # Rescale the x to [0, 1]
             max_val = tf.reduce_max(x_clipped)
             x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
-            return x_rescaled, y
+            return x_rescaled
         
     elif preprocessing == "clip":
         
-        def preprocessing(x,y):
+        def preprocessing(x):
             "clip"
             # Compute the 90th percentile
             percentile = tfp.stats.percentile(x, percentile_clip)
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
-            return x_clipped, y
+            return x_clipped
 
     # create dataset to fed Encoder
     index_data = DataLoader(
