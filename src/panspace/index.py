@@ -24,11 +24,13 @@ def create_index(
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
         ) -> None:
     import json
     import faiss
     import numpy as np
     import tensorflow as tf
+    import tensorflow_probability as tfp
 
     from pathlib import Path
     from .dnn.loaders import DataLoaderAutoencoder as DataLoader
@@ -57,15 +59,36 @@ def create_index(
             index_labels.append(label)
             
     # 3. create embeddings
-
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x: x / x.sum().sum()    
-    else: 
+        preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
+    elif preprocessing == "scale_zero_one": 
         # scale [0,1]
-        preprocessing = lambda x: x / x.max() 
+        preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
+    elif preprocessing == "clip_scale_zero_one":
 
+        def preprocessing(x,y):
+            "clip and rescale [0,1]"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, percentile_clip)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            # Rescale the x to [0, 1]
+            max_val = tf.reduce_max(x_clipped)
+            x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
+            return x_rescaled, y
+        
+    elif preprocessing == "clip":
+        
+        def preprocessing(x,y):
+            "clip"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, percentile_clip)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            return x_clipped, y
+        
     # compute embeddings
     index_data = DataLoader(
         list_paths=index_paths,
@@ -120,12 +143,15 @@ def query_index(
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 16,
         threshold_outlier: Annotated[float, typer.Option("--threshold-outlier","-to", help="Average distance threshold to flag outlier")] = None,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
         ) -> None:
     import json
-    import tensorflow as tf
+
     import faiss
     import numpy as np
     import pandas as pd
+    import tensorflow as tf
+    import tensorflow_probability as tfp
 
     from pathlib import Path
     from collections import Counter
@@ -190,10 +216,32 @@ def query_index(
     # preprocessing of each FCGR to feed the model 
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x: x / x.sum().sum()    
-    else: 
+        preprocessing = lambda x,y: ( x / tf.math.reduce_sum(x), y )   
+    elif preprocessing == "scale_zero_one": 
         # scale [0,1]
-        preprocessing = lambda x: x / x.max() 
+        preprocessing = lambda x,y: ( x / tf.math.reduce_max(x), y )
+    elif preprocessing == "clip_scale_zero_one":
+
+        def preprocessing(x,y):
+            "clip and rescale [0,1]"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, percentile_clip)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            # Rescale the x to [0, 1]
+            max_val = tf.reduce_max(x_clipped)
+            x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
+            return x_rescaled, y
+        
+    elif preprocessing == "clip":
+        
+        def preprocessing(x,y):
+            "clip"
+            # Compute the 90th percentile
+            percentile = tfp.stats.percentile(x, percentile_clip)
+            # Clip values above the 95th percentile
+            x_clipped = tf.minimum(x, percentile)
+            return x_clipped, y
 
     # create dataset to fed Encoder
     index_data = DataLoader(

@@ -516,7 +516,7 @@ def train_metric_learning(
         path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
         factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
         weighted_loader: Annotated[bool, typer.Option("--weighted-loader", "-wl",help="If set, batches will be created weightening classes by representatitity, otherwise, random selection will be used.")]=False,
-        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip",min=0, max=100)] = 90,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
         ) -> None:
     
     """
