@@ -20,7 +20,7 @@ FCGRBIN = config["fcgr_bin"]
 OUTDIR.mkdir(exist_ok=True, parents=True)
 KMC_THREADS=config["kmc_threads"]
 PREPROCESSING=config["preprocessing"]
-CLIP_PERCENTILE=config["clip_percentile"]
+PERCENTILE_CLIP=config["percentile_clip"]
 MASK=config["mask"]
 
 # get list of sequences in DIR_SEQUENCES
@@ -118,7 +118,7 @@ rule query_index:
         outdir=OUTDIR,
         kmer=KMER_SIZE,
         preprocessing=PREPROCESSING,
-        clip_percentile=CLIP_PERCENTILE,
+        percentile_clip=CLIP_PERCENTILE,
     log:
         log=OUTDIR.joinpath("logs/query_index.log"),
         err=OUTDIR.joinpath("logs/query_index.err.log"),
@@ -130,7 +130,7 @@ rule query_index:
             --path-index {params.path_index} \
             --path-fcgr {params.path_fcgr} \
             --preprocessing {params.preprocessing} \
-            --clip-percentile {params.clip_percentile} \
+            --percentile-clip {params.percentile_clip} \
             --outdir {params.outdir} 2> {log.err}
         """
 
