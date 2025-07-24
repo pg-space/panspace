@@ -118,7 +118,7 @@ rule query_index:
         outdir=OUTDIR,
         kmer=KMER_SIZE,
         preprocessing=PREPROCESSING,
-        percentile_clip=CLIP_PERCENTILE,
+        percentile_clip=PERCENTILE_CLIP,
     log:
         log=OUTDIR.joinpath("logs/query_index.log"),
         err=OUTDIR.joinpath("logs/query_index.err.log"),
