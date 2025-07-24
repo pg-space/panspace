@@ -30,6 +30,8 @@ If you have labels for your assemblies, the way to go is with to train the CNNFC
 """
 import typer
 
+from panspace import version as VERSION
+
 # types for typer
 from panspace.trainer import app as app_trainer
 from panspace.index import app as app_index
@@ -37,15 +39,16 @@ from panspace.data_curation import app as app_data_curation
 from panspace.stats_assembly import app as app_stats_assembly
 from panspace.fcgr import app as app_fcgr
 
+
 from rich.progress import track
 from rich import print 
 from rich.console import Console
 from rich.markdown import Markdown
 
 console=Console()
-app = typer.Typer(name="PanSpaceTool",rich_markup_mode="rich", 
-                  help="""
-                        :cat: Welcome to [blue bold]pan[/blue bold][green bold]space[/green bold],
+app = typer.Typer(name="panspace",rich_markup_mode="rich", 
+                  help=f"""
+                        :cat: Welcome to [blue bold]pan[/blue bold][green bold]space[/green bold] (version {VERSION}),
                         a tool for Indexing and Querying a [blue bold]pan-genome[/blue bold]
                         in an [green bold]embedding space[/green bold]
                         """)
@@ -55,7 +58,7 @@ app.add_typer(app_data_curation, name="data-curation")
 app.add_typer(app_stats_assembly, name="stats-assembly")
 app.add_typer(app_fcgr, name="fcgr")
 
-@app.command("docs", help="Open documentation webpage.")
+@app.command("docs", help=f"Open documentation webpage.")
 def github() -> None:
     typer.launch("https://github.com/pg-space/panspace")
 

@@ -19,6 +19,9 @@ HARDWARE = "gpu" if config["gpu"] else "cpu"
 FCGRBIN = config["fcgr_bin"]
 OUTDIR.mkdir(exist_ok=True, parents=True)
 KMC_THREADS=config["kmc_threads"]
+PREPROCESSING=config["preprocessing"]
+CLIP_PERCENTILE=config["clip_percentile"]
+MASK=config["mask"]
 
 # get list of sequences in DIR_SEQUENCES
 ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
@@ -86,14 +89,15 @@ rule fcgr:
             seqid=LIST_SEQID,
             )
     params:
-        kmer=KMER_SIZE,
         fcgr_bin=FCGRBIN,
+        fcgrdir=pjoin(OUTDIR, "fcgr"),
+        mask=MASK,
     log:
         log=OUTDIR.joinpath("logs/fcgr.log"),
         err=OUTDIR.joinpath("logs/fcgr.err.log"),
     shell:
         """
-        /usr/bin/time -vo {log.log} {params.fcgr_bin} {input} 2> {log.err}
+        /usr/bin/time -vo {log.log} {params.fcgr_bin} -m {params.mask} -o {params.fcgrdir} {input} 2> {log.err}
         """
 
 
@@ -113,6 +117,8 @@ rule query_index:
         path_index=PATH_INDEX,
         outdir=OUTDIR,
         kmer=KMER_SIZE,
+        preprocessing=PREPROCESSING,
+        clip_percentile=CLIP_PERCENTILE,
     log:
         log=OUTDIR.joinpath("logs/query_index.log"),
         err=OUTDIR.joinpath("logs/query_index.err.log"),
@@ -123,6 +129,8 @@ rule query_index:
             --path-encoder {params.path_encoder} \
             --path-index {params.path_index} \
             --path-fcgr {params.path_fcgr} \
+            --preprocessing {params.preprocessing} \
+            --clip-percentile {params.clip_percentile} \
             --outdir {params.outdir} 2> {log.err}
         """
 

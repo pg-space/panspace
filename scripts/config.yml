@@ -1,17 +1,17 @@
-neighbors: 11
-kmer: 16
-path_encoder: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/checkpoints/weights-CNNFCGR.keras
-path_index: /home/avila/Servers/watson/zenodo/experiments-metric-learning-2m/7mer/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR/index/panspace.index
 dir_sequences: sequences
-outdir: output-mask
+
+kmer: 8
+mask: "11111111"
+neighbors: 11
+preprocessing: clip_scale_zero_one
+clip_percentile: 90
+
+path_encoder: /data/proj/panspace-paper/experiments-metric-learning-2m/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90/checkpoints/weights-CNNFCGR.keras
+path_index: data/proj/panspace-paper/experiments-metric-learning-2m/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90/index/panspace.index
+outdir: /data/proj/panspace-paper/panspace-query-subset1000/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90
+
 gpu: False
 kmc_threads: 2
 
 # for faster queries. Only used by query_fast.smk
-fcgr_bin: /home/avila/Servers/watson/fcgr/fcgr
-fcgr_mask_bin: /home/avila/Servers/watson/fcgr-mask/fcgr/fcgr
-mask: "111100000001111"
-# "111100011000011"
-# "111100011010001"
-# "111000101010101"
-  
+fcgr_bin: /data/proj/panspace-paper/fcgr-mask/fcgr/fcgr

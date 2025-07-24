@@ -1,3 +1,4 @@
 """Package to train autoencoders using FCGR"""
 
-__version__="0.0.1"
+import importlib.metadata
+version = importlib.metadata.version("panspace")
