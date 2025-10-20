@@ -77,5 +77,20 @@ def info_from_logs(path_log) -> None:
         loginfo(path_log)
     )
 
+@app.command("app",help="Run streamlit app")
+def run_streamlit() -> None:
+    import os
+    from pathlib import Path
+
+    console.rule("[bold blue]Running Streamlit Application")
+    console.print(Markdown("## panspace"))
+    console.print("Starting Streamlit application...")
+    
+    # Get absolute path to the Streamlit app relative to this file
+    current_dir = Path(__file__).resolve().parent
+    path_app = current_dir / "streamlit" / "app.py"    
+    os.system(f"streamlit run {path_app}")
+
+
 if __name__ == "__main__":
     app()

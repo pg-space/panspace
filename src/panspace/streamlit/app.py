@@ -1,120 +1,30 @@
 import json
-import streamlit as st
+import faiss
 import numpy as np
 import pandas as pd
-
-from pathlib import Path
+import streamlit as st
+import tensorflow as tf
 
 from collections import namedtuple
-
+from pathlib import Path
 from rich.progress import track
 from complexcgr import FCGR
+
 from panspace import version
 from panspace.streamlit.utils import (
     count_kmers_from_fasta,
     compute_fcgr_matrix,
     clip_fcgr,
+    create_embedding,
+    query_embedding,
 )
 from panspace.streamlit.interactive_plot import show_fcgr
 
-import tensorflow as tf
-import faiss
-
-@st.cache_data()
-def load_model(path_model):
-    model = tf.keras.models.load_model(path_model)
-    return model
-
-@st.cache_data()
-def load_index(path_index):
-    index = faiss.read_index(str(path_index))
-    return index
-
-@st.cache_resource()
-def load_labels(dir_index):
-    dir_index = Path(dir_index)
-    with open(dir_index.joinpath("id_embeddings.json"), "r") as fp:
-        pos_to_path = {int(idx): path for idx,path in json.load(fp).items()}
-
-    with open(dir_index.joinpath("labels.json"), "r") as fp:
-        pos_to_label = {int(idx): label for idx,label in json.load(fp).items()}
-
-    labels_by_sampleid = dict()
-    for pos, path in pos_to_path.items():       
-        sampleid=Path(path).stem
-        label = pos_to_label[pos]
-        labels_by_sampleid[sampleid] = label
-
-    Metadata=namedtuple("Metadata",["sample_id","label"])
-    
-    with open(dir_index.joinpath("id_embeddings.json"),"r") as fp:
-        index2metadata = {int(idx): 
-                        Metadata(
-                            Path(path).stem, 
-                            labels_by_sampleid.get(Path(path).stem,"unknown")
-                            )   
-                            for idx, path in json.load(fp).items()}
-
-    return labels_by_sampleid, list(index2metadata.keys()), list(index2metadata.values())
-
-def create_embedding(fcgr_matrix, model, preprocessing="clip", percentile_clip=80):
-    
-    import tensorflow_probability as tfp
-
-    # preprocessing of each FCGR to feed the model 
-    if preprocessing == "distribution":
-        # sum = 1
-        preprocessing = lambda x: x / tf.math.reduce_sum(x)   
-    elif preprocessing == "scale_zero_one": 
-        # scale [0,1]
-        preprocessing = lambda x: x / tf.math.reduce_max(x)
-    elif preprocessing == "clip_scale_zero_one":
-
-        def preprocessing(x):
-            "clip and rescale [0,1]"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
-            x_clipped = tf.minimum(x, percentile)
-            x_clipped = tf.cast(x_clipped, tf.float32)
-
-            # Rescale the x to [0, 1]
-            max_val = tf.reduce_max(x_clipped)
-            max_val = tf.cast(max_val, tf.float32)
-            
-            x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
-            return x_rescaled
-        
-    elif preprocessing == "clip":
-        
-        def preprocessing(x):
-            "clip"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
-            x_clipped = tf.minimum(x, percentile)
-            return x_clipped
-    
-    fcgr_matrix = preprocessing(fcgr_matrix)
-    embedding = model.predict(fcgr_matrix)
-
-    return embedding
-
-def query_embedding(embedding, index, neighbors, get_label, get_sampleid):
-
-    D,I = index.search(embedding, neighbors)
-     
-    neighbors_labels= get_label(I)
-    neighbors_sample_ids = get_sampleid(I)
-    
-    print(neighbors_labels)
-    print(neighbors_sample_ids)
-    print(D)
-
-    df = pd.DataFrame({"sampleid": neighbors_sample_ids[0], "label": neighbors_labels[0], "distance": D[0]})
-    df["distance"] = df["distance"].astype("float32")
-
-    return df
+from panspace.streamlit.utils import (
+    load_model, 
+    load_index,
+    load_labels,
+)
 
 with st.sidebar:
     st.image("img/panspace-logo-v4.png", caption=f"panspace v{version}")
@@ -154,7 +64,7 @@ with st.expander("About panspace :dna:"):
 
 
 path = st.text_input("Path to FASTA file or directory", 
-                          value="/home/koke/Servers/watson/Github/panspace/sequences/SAMEA747610.fa", 
+                          value="sequences/SAMEA747610.fa", 
                           help="Enter the path to your FASTA file here. Accepted extension: .fasta, .fa, .fna .fa.gz")
 path = Path(path)
 if path.is_dir():
@@ -199,9 +109,10 @@ if path_file is not None and button:
         st.write("Showing FCGR...")        
         status.update(label="FCGR Done!", state="complete", expanded=False)
 
-    # Display the interactive plot
+    # --- Display the interactive plot
     show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
 
+# --- Query
 if button_query and button:
     with st.status("Query", expanded=True) as status:
 
@@ -234,4 +145,6 @@ if button_query and button:
 
         status.update(label="Query Done!", state="complete", expanded=False)
 
-    st.dataframe(query_result)   
+    st.dataframe(query_result, column_config={
+        "url": st.column_config.LinkColumn()
+    })   
