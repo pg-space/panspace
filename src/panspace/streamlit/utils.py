@@ -5,6 +5,8 @@ from collections import Counter
 
 from complexcgr import FCGR
 
+import gzip
+
 def count_kmers_from_fasta(fasta_path, k=5):
     """
     Count k-mer frequencies in a FASTA file.
@@ -18,13 +20,26 @@ def count_kmers_from_fasta(fasta_path, k=5):
     """
     kmer_counts = Counter()
 
-    with open(fasta_path, "r") as fasta_path:
-        for record in SeqIO.parse(fasta_path, "fasta"):
-            seq = str(record.seq).upper()
-            for i in range(len(seq) - k + 1):
-                kmer = seq[i:i + k]
-                if "N" not in kmer:  # skip ambiguous kmers
-                    kmer_counts[kmer] += 1
+    # gzip files
+    if str(fasta_path).endswith(".gz"):
+        open_func = gzip.open if fasta_path.endswith(".gz") else open
+
+        with open_func(fasta_path, "rt") as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                seq = str(record.seq).upper()
+                for i in range(len(seq) - k + 1):
+                    kmer = seq[i:i + k]
+                    if "N" not in kmer:  # skip ambiguous kmers
+                        kmer_counts[kmer] += 1
+    # plain fasta
+    else:
+        with open(fasta_path, "r") as fasta_path:
+            for record in SeqIO.parse(fasta_path, "fasta"):
+                seq = str(record.seq).upper()
+                for i in range(len(seq) - k + 1):
+                    kmer = seq[i:i + k]
+                    if "N" not in kmer:  # skip ambiguous kmers
+                        kmer_counts[kmer] += 1
 
     return dict(kmer_counts)
 

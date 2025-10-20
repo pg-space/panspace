@@ -118,10 +118,11 @@ def query_embedding(embedding, index, neighbors, get_label, get_sampleid):
 
 with st.sidebar:
     st.image("img/panspace-logo-v4.png", caption=f"panspace v{version}")
+    
+    st.header("FCGR")
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
     percentile_clip = st.slider("percentile clip", min_value=0.0, max_value=100.0, value=80.0, step=0.1, key="percentile_clip")
 
-    st.write("FCGR image")
     col1, col2 = st.columns(2)
     with col1: width = st.number_input("width", value=800)
     with col2: height = st.number_input("height", value=800)
@@ -133,8 +134,9 @@ with st.sidebar:
         path_model = st.text_input("Encoder", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-128-CNNFCGR_Levels-level1-clip100/checkpoints/weights-CNNFCGR_Levels.keras")
         neighbors = st.number_input("Neighbors", value=11, min_value=1, max_value=100,)
 
+st.set_page_config(layout="wide")
 
-with st.expander("About panspace"):
+with st.expander("About panspace :dna:"):
     st.markdown(
         """
         `panspace` is a Python library for querying bacterial assemblies in an embedding space.
@@ -151,10 +153,21 @@ with st.expander("About panspace"):
     st.image("img/panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
 
 
-path_file = st.text_input("Path to FASTA file", 
+path = st.text_input("Path to FASTA file or directory", 
                           value="/home/koke/Servers/watson/Github/panspace/sequences/SAMEA747610.fa", 
                           help="Enter the path to your FASTA file here. Accepted extension: .fasta, .fa, .fna .fa.gz")
+path = Path(path)
+if path.is_dir():
+    paths = list(path.rglob("*.fa")) + \
+            list(path.rglob("*.fa.gz")) + \
+            list(path.rglob("*.fna")) + \
+            list(path.rglob("*.fasta"))
+    path_file = st.selectbox("Select file", [str(x) for x in paths])
 
+elif path.is_file():
+    assert any([str(path).endswith(x) for x in [".fa",".fasta",".fna",".fa.gz"]]), "incorrect extension file"
+    path_file = path
+                
 button = st.button("Submit", type="primary")
 
 if path_file is not None and button:
@@ -180,7 +193,8 @@ if path_file is not None and button:
         if percentile_clip < 100:
             st.write("Applying clipping to FCGR") 
             fcgr_matrix_plot = clip_fcgr(fcgr_matrix, percentile_clip=percentile_clip)
-
+        else:
+            fcgr_matrix_plot = fcgr_matrix
         fcgr = FCGR(k=kmer_size)
         st.write("Showing FCGR...")        
         status.update(label="FCGR Done!", state="complete", expanded=False)
@@ -188,7 +202,7 @@ if path_file is not None and button:
     # Display the interactive plot
     show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
 
-if button_query:
+if button_query and button:
     with st.status("Query", expanded=True) as status:
 
         dir_index = Path(dir_index)
