@@ -26,6 +26,10 @@ dependencies = [
     "rich==13.7.0",
     "rich-argparse==1.4.0",
     "tqdm==4.66.1",
+    "streamlit==1.50.0",
+    "numpy==1.26.4",
+    "scipy==1.14.1",
+    "plotly==6.3.1"
 ]
 
 [project.optional-dependencies]

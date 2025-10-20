@@ -49,8 +49,8 @@ console=Console()
 app = typer.Typer(name="panspace",rich_markup_mode="rich", 
                   help=f"""
                         :cat: Welcome to [blue bold]pan[/blue bold][green bold]space[/green bold] (version {VERSION}),
-                        a tool for Indexing and Querying a [blue bold]pan-genome[/blue bold]
-                        in an [green bold]embedding space[/green bold]
+                        a tool for Indexing and Querying a bacterial [blue bold]pan-genome[/blue bold]
+                        based on [green bold]embeddings[/green bold]
                         """)
 app.add_typer(app_index, name="index")
 app.add_typer(app_trainer, name="trainer")

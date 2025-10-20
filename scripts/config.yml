@@ -4,11 +4,11 @@ kmer: 8
 mask: "11111111"
 neighbors: 11
 preprocessing: clip_scale_zero_one
-percentile_clip: 90
+percentile_clip: 100
 
-path_encoder: /data/proj/panspace-paper/experiments-metric-learning-2m/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90/checkpoints/weights-CNNFCGR.keras
-path_index: /data/proj/panspace-paper/experiments-metric-learning-2m/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90/index/panspace.index
-outdir: /data/proj/panspace-paper/panspace-query-subset1000/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip90
+path_encoder: /home/koke/Servers/watson/Github/panspace/indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-128-CNNFCGR_Levels-level1-clip100/checkpoints/weights-CNNFCGR_Levels.keras
+path_index: /home/koke/Servers/watson/Github/panspace/indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-128-CNNFCGR_Levels-level1-clip100/index/panspace.index
+outdir: test-query/
 
 gpu: False
 kmc_threads: 2
