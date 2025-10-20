@@ -40,9 +40,10 @@ with st.sidebar:
     button_query = st.toggle("Query")
 
     if button_query:
-        dir_index = st.text_input("Directory Index", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-128-CNNFCGR_Levels-level1-clip100/index")
-        path_model = st.text_input("Encoder", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-128-CNNFCGR_Levels-level1-clip100/checkpoints/weights-CNNFCGR_Levels.keras")
+        dir_index = st.text_input("Directory Index", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80/index")
+        path_model = st.text_input("Encoder", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80/checkpoints/weights-CNNFCGR_Levels.keras")
         neighbors = st.number_input("Neighbors", value=11, min_value=1, max_value=100,)
+        preprocessing = st.selectbox("Preprocessing FCGR", options = ["distribution","scale_zero_one","clip_scale_zero_one","clip"] , index = 2)
 
 st.set_page_config(layout="wide")
 
@@ -138,7 +139,7 @@ if button_query and button:
         
         print(fcgr_matrix.shape)
         st.write("Creating embedding...")       
-        embedding = create_embedding(np.expand_dims(fcgr_matrix,axis=0), model, preprocessing="scale_zero_one", percentile_clip=percentile_clip)
+        embedding = create_embedding(np.expand_dims(fcgr_matrix,axis=0), model, preprocessing=preprocessing, percentile_clip=percentile_clip)
 
         st.write("Querying...")
         query_result = query_embedding(embedding, index, neighbors, get_label, get_sampleid)

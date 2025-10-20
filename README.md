@@ -20,8 +20,33 @@
 
 The library is based on tensorflow and faiss index.
 
+## Try `panspace` queries for single files
 
-## Query `index`
+Clone the repository 
+```bash
+git clone https://github.com/pg-space/panspace.git
+cd panspace
+```
+
+and install the library
+with **CPU** support
+```bash
+conda env create -f envs/cpu.yml
+conda activate panspace-cpu
+```
+
+with **GPU** support
+```bash
+conda env create -f envs/gpu.yml
+conda activate panspace-gpu
+```
+
+Then run the streamlit app
+```bash
+panspace app
+```
+
+## Query `index` from a folder of files
 ___
 
 ### Available indexes
@@ -31,12 +56,7 @@ ___
 
 
 We provide a **snakemake** pipeline to query a collection of genomes (from a folder), 
-
-0. Clone the repository
-```bash
-git clone https://github.com/pg-space/panspace.git
-cd panspace
-``` 
+ 
 
 1. [install snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html),
 ```bash
@@ -85,6 +105,8 @@ ___
 
 with **CPU** support
 
+
+
 ```bash
 pip install "panspace[cpu] @ git+https://github.com/pg-space/panspace.git"
 ```
@@ -108,6 +130,7 @@ with **GPU** support
 conda env create -f envs/gpu.yml
 conda activate panspace-gpu
 ```
+
 ## step-by-step guide
 
 
@@ -119,29 +142,32 @@ It provides commands for
 - create and query an Index of _embeddings_.
 
 ```bash
-panspace --help 
+panspace --help                                                                (panspace-cpu) 
+                                                                                                         
+ Usage: panspace [OPTIONS] COMMAND [ARGS]...                                                             
+                                                                                                         
+ 🐱 Welcome to panspace (version 0.1.0), a tool for Indexing and Querying a bacterial pan-genome based   
+ on embeddings                                                                                           
+                                                                                                         
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                               │
+│ --show-completion             Show completion for the current shell, to copy it or customize the      │
+│                               installation.                                                           │
+│ --help                        Show this message and exit.                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ app              Run streamlit app                                                                    │
+│ data-curation    Find outliers and mislabaled samples.                                                │
+│ docs             Open documentation webpage.                                                          │
+│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.                 │
+│ index            Create and query index. Utilities to test index.                                     │
+│ stats-assembly   N50, number of contigs, avg length, total length.                                    │
+│ trainer          Train Autoencoder/Metric Learning. Utilities.                                        │
+│ utils            Extract info from text or log files                                                  │
+│ what-to-do       🐱 If you are new here, check this step-by-step guide                                │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-Usage: panspace [OPTIONS] COMMAND [ARGS]...                                                                               
-                                                                                                                           
- 🐱 Welcome to panspace, a tool for Indexing and Querying a pan-genome in an embedding space                               
-                                                                                                                           
-╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --install-completion          Install completion for the current shell.                                                 │
-│ --show-completion             Show completion for the current shell, to copy it or customize the installation.          │
-│ --help                        Show this message and exit.                                                               │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ data-curation    Find outliers and mislabaled samples.                                                                  │
-│ docs             Open documentation webpage.                                                                            │
-│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.                                   │
-│ index            Create and query index. Utilities to test index.                                                       │
-│ stats-assembly   N50, number of contigs, avg length, total length.                                                      │
-│ trainer          Train Autoencoder/Metric Learning. Utilities.                                                          │
-│ utils            Extract info from text or log files                                                                    │
-│ what-to-do       🐱 If you are new here, check this step-by-step guide                                                  │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
-
 
 
 ### 1. Create FCGR of assemblies
