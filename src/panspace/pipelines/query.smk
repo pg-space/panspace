@@ -17,6 +17,8 @@ DIR_SEQUENCES=config["dir_sequences"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
 KMC_THREADS=config["kmc_threads"]
+PREPROCESSING=config["preprocessing"]
+PERCENTILE_CLIP=config["percentile_clip"]
 
 # get list of sequences in DIR_SEQUENCES
 ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
@@ -93,6 +95,8 @@ rule query_index:
         path_index=PATH_INDEX,
         outdir=OUTDIR,
         kmer=KMER_SIZE,
+        preprocessing=PREPROCESSING,
+        percentile_clip=PERCENTILE_CLIP,
     log:
         std=OUTDIR.joinpath("logs/query_index.log"),
         err=OUTDIR.joinpath("logs/query_index..err.log"),
@@ -103,6 +107,8 @@ rule query_index:
             --path-encoder {params.path_encoder} \
             --path-index {params.path_index} \
             --path-fcgr {params.path_fcgr} \
+            --preprocessing {params.preprocessing} \
+            --percentile-clip {params.percentile_clip} \
             --outdir {params.outdir} 2> {log.err}
         """
 

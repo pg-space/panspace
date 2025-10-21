@@ -1,4 +1,4 @@
-# workdir: "."
+workdir: "."
 # configfile: "scripts/config_query.yml"
 
 """
@@ -44,8 +44,8 @@ rule all:
 rule count_kmers:
     output:
         # temp()
-        pjoin(OUTDIR, "fcgr","{seqid}.kmc_pre"),
-        pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
+        temp(pjoin(OUTDIR, "fcgr","{seqid}.kmc_pre")),
+        temp(pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf")),
     input:
         lambda wildcards: path_by_seqid[wildcards.seqid]
     params:
@@ -84,12 +84,20 @@ rule list_path_seqid:
 
 rule fcgr:
     input:
-        pjoin(OUTDIR, "list_path_kmc.txt")
+        pjoin(OUTDIR, "list_path_kmc.txt"),
+        expand(
+            pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
+            seqid=LIST_SEQID
+        ),
+        expand(
+            pjoin(OUTDIR, "fcgr","{seqid}.kmc_pre"),
+            seqid=LIST_SEQID
+        ),
     output:
         expand(
             pjoin(OUTDIR, "fcgr", "{seqid}.npy"),
             seqid=LIST_SEQID,
-            )
+            ),
     params:
         fcgr_bin=FCGRBIN,
         fcgrdir=pjoin(OUTDIR, "fcgr"),

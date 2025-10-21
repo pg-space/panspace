@@ -952,9 +952,9 @@ def show_architecture(
         hidden_activation: Annotated[Activation,typer.Option("--hidden-activation", "-ha", help="activation function for hidden layers")]=Activation.Relu.value,
         batch_normalization: Annotated[bool, typer.Option("--batch-normalization/ ","-bn/ ", help="If set, batch normalization will be applied after each ConvFCGR")]=False,
         ) -> None:
-    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout
+    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout, CNNFCGR_Levels
     # Load and train model
-    if architecture in ["CNNFCGR","CNNFCGR_Dropout"]:
+    if architecture in ["CNNFCGR","CNNFCGR_Dropout","CNNFCGR_Levels"]:
         model=eval(f"""{architecture}(latent_dim = {latent_dim}, 
                     hidden_activation='{hidden_activation}', 
                     kmer={kmer}, 

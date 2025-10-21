@@ -44,7 +44,7 @@ def fcgr2image(list_npy: Annotated[Path, typer.Option("--list-npy", "-l", mode="
 
         sampleid = Path(path_npy).stem
         batch = Path(path_npy).parent
-        path_save = dir_save.joinpath(f"{kmer}mer/{batch}/{sampleid}.jpeg")
+        path_save = dir_save.joinpath(f"{sampleid}.jpeg")
         Path(path_save).parent.mkdir(exist_ok=True,parents=True)
         fcgr.save_img(m, path_save)
 

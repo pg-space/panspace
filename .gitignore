@@ -4,6 +4,7 @@
 .vscode/
 tmp_kmc/
 *plots*/
+indexes/
 
 # environment
 env/

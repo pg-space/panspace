@@ -1,10 +1,17 @@
 workdir: "."
-configfile: "scripts/config.yml"
+configfile: "scripts/config_fcgr.yml"
 
 """
 This script creates fcgr from AllTheBacteria dataset saved as bacthes in <batch_name>.asm.tar.xz
 It requires that all tar.xz files are stores in <datadir>/batches/<batch_name>.asm.tar.xz
-The fcgr will be saved in <datadir>/fcgr/<kmer_size>mer/<batch_name>
+The fcgr will be saved in <datadir>/fcgr-mask<mask>/<kmer_size>mer/<batch_name>
+
+Note:
+    <mask> gives the option to count spaced k-mers, for example, 001111001111 represents the mask of a 
+    8-mer obtained from a 12-spaced-mer (with 12 the length of the mask), we can use that mask to create the FCGR, 
+    or keep the 8-mers (mask 11111111).
+
+    Example:  AACCGGTTAACC --(mask)--> CCGGAACC
 """
 
 import json
@@ -13,9 +20,11 @@ from os.path import join as pjoin
 from pathlib import Path
 
 # params
-KMER=config["kmer_size"]
+MASK=str(config["mask"]); print("Mask:", MASK, type(MASK))
+KMER=sum([int(x) for x in MASK]); print("Kmer size:", KMER)
+KMER_KMC = len(MASK); print("Kmer size for KMC:", KMER_KMC)
 DATADIR=Path(config["datadir"])
-DIRFCGR=DATADIR.joinpath(f"fcgr/{KMER}mer")
+DIRFCGR=DATADIR.joinpath(f"fcgr-mask{MASK}/{KMER}mer")
 SUBSET=config["subset"]
 
 ### ---- FCGR ----
@@ -29,7 +38,7 @@ def load_batches(subset):
             list_files.append(name)
     return list_files
 
-print("H0ola")
+print("FCGR mask:", config["mask"])
 TARFILES=load_batches(SUBSET)
 print(TARFILES)
 
@@ -66,15 +75,18 @@ rule count_kmers:
     log:
         pjoin(DATADIR, "logs", "count_kmers-{tarfile}-{fasta}.log")
     params:
-        kmer=KMER,
+        kmer=KMER_KMC,
         out=lambda w: pjoin(DATADIR, "kmer-count",f"{w.tarfile}",f"{w.fasta}"),
+        mem_gb=lambda wildcards, resources: int(resources.mem_mb) // 1024  # Move the division here
     conda:
         "envs/kmc.yml"
     threads:
         config["kmc_threads"],
+    resources:
+        mem_mb=16_000,
     shell:
         """
-        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} . 2> {log}
+        /usr/bin/time -v kmc -v -k{params.kmer} -m{params.mem_gb} -sm -ci0 -cs65535 -b -t{threads} -fm {input} {params.out} . 2> {log}
         rm -r {input}
         """
 
@@ -111,15 +123,16 @@ checkpoint save_fcgr_as_numpy:
         kmer=KMER,
         kmerdir=lambda w: pjoin(DATADIR,"kmer-count",f"{w.tarfile}"),
         fcgrdir=lambda w: pjoin(DIRFCGR, f"{w.tarfile}"),
-        bin_fcgr=config["bin_fcgr"]
+        bin_fcgr=config["bin_fcgr_mask"],
+        mask=config["mask"],
     log:
         DATADIR.joinpath("logs/fcgr-{tarfile}.log")
     priority:
         100
     shell:
         """
-        /usr/bin/time -v {params.bin_fcgr} {input} 2> {log}
-        mkdir -p {params.fcgrdir} 
+        /usr/bin/time -v {params.bin_fcgr} -m {params.mask} {input} 2> {log}
+        mkdir -p {params.fcgrdir}
         mv {params.kmerdir}/*.npy {params.fcgrdir}
         """
 

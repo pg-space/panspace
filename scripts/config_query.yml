@@ -1,0 +1,17 @@
+dir_sequences: sequences
+
+kmer: 8
+mask: "11111111"
+neighbors: 11
+preprocessing: clip_scale_zero_one
+percentile_clip: 80
+
+path_encoder: /home/koke/Servers/watson/Github/panspace/indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80/checkpoints/weights-CNNFCGR_Levels.keras
+path_index: /home/koke/Servers/watson/Github/panspace/indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80/index/panspace.index
+outdir: test-query/
+
+gpu: False
+kmc_threads: 2
+
+# for faster queries. Only used by scripts/query_fast.smk
+fcgr_bin: /home/koke/Servers/watson/Github/fcgr/fcgr
