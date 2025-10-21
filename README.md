@@ -175,30 +175,32 @@ It provides commands for
 - create and query an Index of _embeddings_.
 
 ```bash
-panspace --help                                                                (panspace-cpu) 
-                                                                                                         
- Usage: panspace [OPTIONS] COMMAND [ARGS]...                                                             
-                                                                                                         
- 🐱 Welcome to panspace (version 0.1.0), a tool for Indexing and Querying a bacterial pan-genome based   
- on embeddings                                                                                           
-                                                                                                         
-╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --install-completion          Install completion for the current shell.                               │
-│ --show-completion             Show completion for the current shell, to copy it or customize the      │
-│                               installation.                                                           │
-│ --help                        Show this message and exit.                                             │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ app              Run streamlit app                                                                    │
-│ data-curation    Find outliers and mislabaled samples.                                                │
-│ docs             Open documentation webpage.                                                          │
-│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.                 │
-│ index            Create and query index. Utilities to test index.                                     │
-│ stats-assembly   N50, number of contigs, avg length, total length.                                    │
-│ trainer          Train Autoencoder/Metric Learning. Utilities.                                        │
-│ utils            Extract info from text or log files                                                  │
-│ what-to-do       🐱 If you are new here, check this step-by-step guide                                │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+>> panspace --help                                             
+                                                                                           
+ Usage: panspace [OPTIONS] COMMAND [ARGS]...                                               
+                                                                                           
+ 🐱 Welcome to panspace (version 0.2.0), a tool for Indexing and Querying a bacterial      
+ pan-genome based on embeddings                                                            
+                                                                                           
+╭─ Options ───────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                 │
+│ --show-completion             Show completion for the current shell, to copy it or      │
+│                               customize the installation.                               │
+│ --help                        Show this message and exit.                               │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ──────────────────────────────────────────────────────────────────────────────╮
+│ app              Run streamlit app                                                      │
+│ data-curation    Find outliers and mislabaled samples.                                  │
+│ docs             Open documentation webpage.                                            │
+│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.   │
+│ index            Create and query index. Utilities to test index.                       │
+│ query-smk        Run the Snakemake pipeline with the specified configuration.           │
+│ stats-assembly   N50, number of contigs, avg length, total length.                      │
+│ trainer          Train Autoencoder/Metric Learning. Utilities.                          │
+│ utils            Extract info from text or log files                                    │
+│ what-to-do       🐱 If you are new here, check this step-by-step guide                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
+
 
 ```
 
