@@ -65,13 +65,13 @@ conda activate snakemake
 conda config --set channel_priority strict
 ```
 
-2. set parameters in `scripts/config.yml`, 
+2. set parameters in `scripts/config_query.yml`, 
 
     - **directory with sequences** (accepted extensions `.fa.gz`, `.fa`, `.fna`) 
     - define an **output directory** to save query results
     - **gpu** or **cpu** usage
     - path to the **encoder** (`<path/to/encoder>.keras`)
-    - path to the **index**  (<path/to/panspace-index>.index)
+    - path to the **index**  (`<path/to/panspace-index>.index`)
 
 finally run
 ```bash
@@ -82,11 +82,12 @@ snakemake -s scripts/query.smk --cores 8 --use-conda
 recommended if you have hundreds or thousands of assemblies to query 
 
 First install the [FCGR extension to KMC3](https://github.com/pg-space/fcgr/)
-and put the path to the installed tool in the `scripts/config.yml` file and run, 
+and put the path to the installed bin of the `fcgr` tool in the `scripts/config_fcgr.yml` file. Then run, 
  
 ```bash
 snakemake -s scripts/query_fast.smk --cores 8 --use-conda
 ```
+
 or put it directly on bash
 ```bash
 snakemake -s scripts/query_fast.smk --cores 8 --use-conda --config fcgr_bin=<path/to/fcgr>
