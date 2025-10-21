@@ -1,11 +1,9 @@
-# workdir: "."
-# configfile: "scripts/config_query.yml"
+workdir: "."
+configfile: "scripts/config_query.yml"
 
 """
 This script query the index with fasta files in a folder
-The output is a numpy file with the embeddings and a CSV with the top-NEIGHBOR predictions and distances
-
-It requires to have installed https://github.com/pg-space/fcgr
+The output is a numpy file with the embeddings and a CSV with the top-N predictions and distances
 """
 
 from pathlib import Path
@@ -18,12 +16,9 @@ PATH_INDEX=config["path_index"]
 DIR_SEQUENCES=config["dir_sequences"]
 OUTDIR = Path(config["outdir"])
 HARDWARE = "gpu" if config["gpu"] else "cpu"
-FCGRBIN = config["fcgr_bin"]
-OUTDIR.mkdir(exist_ok=True, parents=True)
 KMC_THREADS=config["kmc_threads"]
 PREPROCESSING=config["preprocessing"]
 PERCENTILE_CLIP=config["percentile_clip"]
-MASK=config["mask"]
 
 # get list of sequences in DIR_SEQUENCES
 ALLOWED_EXTENSIONS = [".fa.gz", ".fa", ".fna"]
@@ -40,68 +35,49 @@ rule all:
         pjoin(OUTDIR, "embeddings.npy"),
         pjoin(OUTDIR, "query.csv")
 
-
 rule count_kmers:
-    output:
-        # temp()
-        pjoin(OUTDIR, "fcgr","{seqid}.kmc_pre"),
-        pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
     input:
         lambda wildcards: path_by_seqid[wildcards.seqid]
+    output:
+        temp(
+        pjoin(OUTDIR, "fcgr","{seqid}.kmer-count.txt")
+            )
     params:
         kmer=KMER_SIZE,
-        prefix=pjoin(OUTDIR, "fcgr","{seqid}"),
     threads:
         KMC_THREADS,
     conda:
         "envs/kmc.yml"
     log:
-        log=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
-        err=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.err.log"),
+        kmc=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
+        dump=OUTDIR.joinpath("logs/count_kmers_dump-{seqid}.log"),
     shell:
         """
         mkdir -p tmp-kmc
-        /usr/bin/time -vo {log.log} kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t{threads} -fm {input} {params.prefix} 'tmp-kmc' 2> {log.err}
+        /usr/bin/time -v kmc -v -k{params.kmer} -m4 -sm -ci0 -cs100000 -b -t{threads} -fm {input} {input} "tmp-kmc" 2> {log.kmc}
+        /usr/bin/time -v kmc_tools -t{threads} -v transform {input} dump {output} 2> {log.dump}
+        rm -r {input}.kmc_pre {input}.kmc_suf
         """
-
-
-rule list_path_seqid:
-    input:  
-        expand(
-            pjoin(OUTDIR, "fcgr","{seqid}.kmc_suf"),
-            seqid=LIST_SEQID
-        )
-    output: 
-        pjoin(OUTDIR, "list_path_kmc.txt")
-    params:
-        folder_kmc_output=pjoin(OUTDIR, "fcgr")
-    log:
-        log=OUTDIR.joinpath("logs/list_path_seqid.log"),
-        err=OUTDIR.joinpath("logs/list_path_seqid.err.log"),
-    shell:
-        "/usr/bin/time -vo {log.log} ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log.err}"
-
 
 rule fcgr:
-    input:
-        pjoin(OUTDIR, "list_path_kmc.txt")
+    input: 
+        pjoin(OUTDIR, "fcgr", "{seqid}.kmer-count.txt")
     output:
-        expand(
-            pjoin(OUTDIR, "fcgr", "{seqid}.npy"),
-            seqid=LIST_SEQID,
-            )
+        pjoin(OUTDIR, "fcgr", "{seqid}.npy")
     params:
-        fcgr_bin=FCGRBIN,
-        fcgrdir=pjoin(OUTDIR, "fcgr"),
-        mask=MASK,
+        kmer=KMER_SIZE
+    conda: 
+        f"envs/{HARDWARE}.yml"
     log:
-        log=OUTDIR.joinpath("logs/fcgr.log"),
-        err=OUTDIR.joinpath("logs/fcgr.err.log"),
+        std=OUTDIR.joinpath("logs/fcgr-{seqid}.log"),
+        err=OUTDIR.joinpath("logs/fcgr-{seqid}.err.log"),
     shell:
         """
-        /usr/bin/time -vo {log.log} {params.fcgr_bin} -m {params.mask} -o {params.fcgrdir} {input} 2> {log.err}
+        /usr/bin/time -vo {log.std} panspace fcgr from-kmer-counts \
+            --kmer {params.kmer} \
+            --path-kmer-counts {input} \
+            --path-save {output} 2> {log.err}
         """
-
 
 rule query_index:
     input:
@@ -122,11 +98,11 @@ rule query_index:
         preprocessing=PREPROCESSING,
         percentile_clip=PERCENTILE_CLIP,
     log:
-        log=OUTDIR.joinpath("logs/query_index.log"),
-        err=OUTDIR.joinpath("logs/query_index.err.log"),
+        std=OUTDIR.joinpath("logs/query_index.log"),
+        err=OUTDIR.joinpath("logs/query_index..err.log"),
     shell:
         """
-        /usr/bin/time -vo {log.log} panspace index query \
+        /usr/bin/time -vo {log.std} panspace index query \
             --kmer-size {params.kmer} \
             --path-encoder {params.path_encoder} \
             --path-index {params.path_index} \
@@ -135,7 +111,6 @@ rule query_index:
             --percentile-clip {params.percentile_clip} \
             --outdir {params.outdir} 2> {log.err}
         """
-
 
 rule add_path_seq_to_predictions:
     input:

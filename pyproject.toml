@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "panspace"
-version = "0.1.0"
+version = "0.2.0"
 description = "Indexing assemblies with autoencoders and FCGR"
 authors = [
     { name = "Jorge Avila Cartes", email = "jorgeavilacartes@gmail.com" },
@@ -29,8 +29,9 @@ dependencies = [
     "streamlit==1.50.0",
     "numpy==1.26.4",
     "scipy==1.14.1",
-    "plotly==6.3.1"
-]
+    "plotly==6.3.1",
+    "orjson"
+    ]
 
 [project.optional-dependencies]
 cpu = [

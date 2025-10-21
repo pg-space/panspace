@@ -1,4 +1,5 @@
 import json
+import orjson
 import gzip
 import faiss
 import numpy as np
@@ -152,16 +153,21 @@ def load_index(path_index):
 def load_labels(dir_index):
     dir_index = Path(dir_index)
     with open(dir_index.joinpath("id_embeddings.json"), "r") as fp:
-        pos_to_path = {int(idx): path for idx,path in json.load(fp).items()}
+        # pos_to_path = {int(idx): path for idx,path in json.load(fp).items()}
+        pos_to_path = {int(idx): path for idx,path in orjson.loads(fp.read()).items()}
 
     with open(dir_index.joinpath("labels.json"), "r") as fp:
-        pos_to_label = {int(idx): label for idx,label in json.load(fp).items()}
+        # pos_to_label = {int(idx): label for idx,label in json.load(fp).items()}
+        pos_to_label = {int(idx): label for idx,label in orjson.loads(fp.read()).items()}
 
-    labels_by_sampleid = dict()
-    for pos, path in pos_to_path.items():       
-        sampleid=Path(path).stem
-        label = pos_to_label[pos]
-        labels_by_sampleid[sampleid] = label
+    # labels_by_sampleid = dict()
+    labels_by_sampleid = {
+        Path(path).stem: pos_to_label[pos] for pos,path in pos_to_path.items()
+    }
+    # for pos, path in pos_to_path.items():       
+    #     sampleid=Path(path).stem
+    #     label = pos_to_label[pos]
+    #     labels_by_sampleid[sampleid] = label
 
     Metadata=namedtuple("Metadata",["sample_id","label"])
     
@@ -171,6 +177,6 @@ def load_labels(dir_index):
                             Path(path).stem, 
                             labels_by_sampleid.get(Path(path).stem,"unknown")
                             )   
-                            for idx, path in json.load(fp).items()}
+                            for idx, path in orjson.loads(fp.read()).items()}
 
     return labels_by_sampleid, list(index2metadata.keys()), list(index2metadata.values())

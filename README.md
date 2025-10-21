@@ -49,23 +49,49 @@ panspace app
 ## Query `index` from a folder of files
 ___
 
+
+[Download the index and encoder](https://zenodo.org/records/17402877)
+
 ### Available indexes
-| Encoder | Kmer | Embedding Size | Download                                    |
+
+Inside each file you will find
+- Encoder: `checkpoints/<name-model>.keras`
+- Index: `index/panspace.index`, and in the same folder some json files with metadata (labels)
+
+| Encoder | Kmer | Embedding Size | file                                        |
 |---------|------|----------------|---------------------------------------------|
-| CNNFCGR | 7    | 256            | [Download Index](https://zenodo.org/records/14936601/files/index-CNNFCGR-256-7mer.zip?download=1) |
+| CNNFCGR | 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
+| CNNFCGR | 6,7,8| 128,256,512    | check others... |
 
+We provide a **snakemake** pipeline to query a collection of genomes (from a folder), if the environment was installed with conda
+from the `.yml` file, then `snakemake` was installed. 
 
-We provide a **snakemake** pipeline to query a collection of genomes (from a folder), 
- 
+After decompressing the `.zip` you will find two folders: `checkpoints` and `index`. You need the path to the `.keras`file and to `panspace.index`
+
+We can query the index with 
+```bash
+panspace --dir-sequences <path/to/folder> --path-encoder <path/to/checkopoints/weights.keras> --path-index <path/to/panspace.index>
+```
+__Note__ this is just a parser to a snakemake pipeline.
+
+for more, check 
+```bash
+panspace query-smk --help
+```
+
+<!-- 
+Or directly using an environment with snakemake (the only requirement, the pipelines will install `panspace` on the run)
 
 1. [install snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html),
 ```bash
 conda create -c conda-forge -c bioconda -n snakemake snakemake
 conda activate snakemake
-conda config --set channel_priority strict
-```
+conda config --set channel_priority strict -->
+<!-- ``` -->
 
-2. set parameters in `scripts/config_query.yml`, 
+### Using snakemake directly, we first need to 
+
+1. set parameters in `scripts/config_query.yml`, 
 
     - **directory with sequences** (accepted extensions `.fa.gz`, `.fa`, `.fna`) 
     - define an **output directory** to save query results
@@ -73,7 +99,7 @@ conda config --set channel_priority strict
     - path to the **encoder** (`<path/to/encoder>.keras`)
     - path to the **index**  (`<path/to/panspace-index>.index`)
 
-finally run
+2. and run
 ```bash
 snakemake -s scripts/query.smk --cores 8 --use-conda
 ```

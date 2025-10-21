@@ -2,12 +2,8 @@ name: panspace-gpu
 channels:
   - conda-forge
   - anaconda
-  - bioconda
 dependencies:
   - python >= 3.9, < 3.11
   - pip
   - pip:
-    - -e ..[gpu]
-  - snakemake
-  - ipykernel
-  - jupyterlab
+    - -e ../..[gpu]

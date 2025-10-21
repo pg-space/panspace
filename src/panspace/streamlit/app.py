@@ -27,7 +27,8 @@ from panspace.streamlit.utils import (
 )
 
 with st.sidebar:
-    st.image("img/panspace-logo-v4.png", caption=f"panspace v{version}")
+    dir_img = Path(__file__).parent.parent.parent.parent
+    st.image(dir_img / "img" / "panspace-logo-v4.png", caption=f"panspace v{version}")
     
     st.header("FCGR")
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
@@ -61,24 +62,26 @@ with st.expander("About panspace :dna:"):
         For detailed documentation and usage examples, visit the [panspace documentation](https://github.com/pg-space/panspace).
         """
     )
-    st.image("img/panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
+    st.image(dir_img / "img" / "panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
 
 
 path = st.text_input("Path to FASTA file or directory", 
                           value="sequences/SAMEA747610.fa", 
                           help="Enter the path to your FASTA file here. Accepted extension: .fasta, .fa, .fna .fa.gz")
 path = Path(path)
-if path.is_dir():
+if path.is_dir() and path.exists():
     paths = list(path.rglob("*.fa")) + \
             list(path.rglob("*.fa.gz")) + \
             list(path.rglob("*.fna")) + \
             list(path.rglob("*.fasta"))
+    if len(paths) == 0: st.warning("No files detected")
     path_file = st.selectbox("Select file", [str(x) for x in paths])
-
-elif path.is_file():
+elif path.is_file() and path.exists():
     assert any([str(path).endswith(x) for x in [".fa",".fasta",".fna",".fa.gz"]]), "incorrect extension file"
     path_file = path
-                
+else:
+    st.warning(f"{path} does not exists")
+    path_file = None
 button = st.button("Submit", type="primary")
 
 if path_file is not None and button:
@@ -114,7 +117,7 @@ if path_file is not None and button:
     show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
 
 # --- Query
-if button_query and button:
+if button_query and button and path_file is not None:
     with st.status("Query", expanded=True) as status:
 
         dir_index = Path(dir_index)

@@ -8,5 +8,6 @@ dependencies:
   - pip
   - pip:
     - -e ..[cpu]
+  - snakemake
   - ipykernel
   - jupyterlab
