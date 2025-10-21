@@ -1,9 +1,9 @@
 workdir: "."
-configfile: "scripts/config.yml"
+configfile: "scripts/config_query.yml"
 
 """
 This script query the index with fasta files in a folder
-The output is a numpy file with the embeddings and a CSV with the top-10 predictions and distances
+The output is a numpy file with the embeddings and a CSV with the top-N predictions and distances
 """
 
 from pathlib import Path

@@ -1,9 +1,11 @@
 workdir: "."
-configfile: "scripts/config.yml"
+configfile: "scripts/config_query.yml"
 
 """
 This script query the index with fasta files in a folder
 The output is a numpy file with the embeddings and a CSV with the top-NEIGHBOR predictions and distances
+
+It requires to have installed https://github.com/pg-space/fcgr
 """
 
 from pathlib import Path

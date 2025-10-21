@@ -4,9 +4,13 @@ outdir: "/home/avila/Servers/watson/panspace/output-fcgr-masks"
 kmc_threads: 2
 
 # for faster queries. Only used by query_fast.smk
-bin_fcgr_mask: "/home/avila/Servers/watson/fcgr-mask/fcgr/fcgr"
+bin_fcgr_mask: "path/to/fcgr/fcgr"
+
+# a list of masks of the same length.
+# the number of 1 in the each masks must be the same as well.
+# eg: to get 8-mers, use the mask 11111111
+# the following list will also output 8-mers, but from a spaced-mer of size 16 (only positions with 1s are kept) 
 mask: 
-  # - "11111111"
   - "111100000001111"
   - "111100011000011"
   - "111100011010001"

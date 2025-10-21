@@ -171,7 +171,35 @@ panspace --help                                                                (
 
 
 ### 1. Create FCGR of assemblies
+Even though you can use the following command to create a FCGR (.npy file) from a fasta file (and more)
 
+```bash
+panspace fcgr --help                                             (panspace-cpu) 
+                                                                                           
+ Usage: panspace fcgr [OPTIONS] COMMAND [ARGS]...                                          
+                                                                                           
+ Create FCGRs from fasta file or from txt file with kmers and counts.                      
+                                                                                           
+╭─ Options ───────────────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                             │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ──────────────────────────────────────────────────────────────────────────────╮
+│ from-fasta         Create the Frequency matrix of CGR (FCGR) from a fasta file.         │
+│ from-kmer-counts   Create the Frequency matrix of CGR (FCGR) from k-mer counts.         │
+│ to-image           Save FCGR as image from npy file.                                    │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+we suggest that for large datasets, such as [AllTheBacteria](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/), 
+is better to rely on specialized kmer counters, such as [KMC3](https://github.com/refresh-bio/KMC) or [Jellyfish](https://github.com/gmarcais/Jellyfish).
+
+We provide snakemake pipelines to create FCGRs, from:
+- from a folder containing `.fa.gz` files
+- from a folder containing `.fa` files
+- [AllTheBacteria dataset](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/)
+
+Pipelines relies on [KMC3](https://github.com/refresh-bio/KMC) for k-mer counting, and an extension of it to create FCGRs: [fcgr](https://github.com/pg-space/fcgr). The later needs to be installed manually before using the snakemake pipelines.
+KMC3 does not to be installed, the snakemake pipelines takes care of that. 
 
 ### 2. Train an encoder to create the vector representations
 
@@ -186,9 +214,8 @@ panspace trainer split-dataset --help
 - Do you have labels for each assembly? 
     - Use metric learning with the triplet loss
     - Or metric learning with the contrastive loss
-    Using the `CNNFCGR` architecture.
 - If you do not have labels, then use unsupervised learning with the `AutoencoderFCGR` architecture
-
+In all of them the `CNNFCGR` architecture can be used
 
 ```bash
 panspace trainer metric-learning --help # triplet loss

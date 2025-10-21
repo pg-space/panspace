@@ -28,9 +28,9 @@ def count_kmers_from_fasta(fasta_path, k=5):
 
     # gzip files
     if str(fasta_path).endswith(".gz"):
-        open_func = gzip.open if fasta_path.endswith(".gz") else open
+        
 
-        with open_func(fasta_path, "rt") as handle:
+        with gzip.open(fasta_path, "rt") as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 seq = str(record.seq).upper()
                 for i in range(len(seq) - k + 1):
