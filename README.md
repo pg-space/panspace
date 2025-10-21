@@ -20,6 +20,26 @@
 
 The library is based on tensorflow and faiss index.
 
+
+
+[Download the index and encoder](https://zenodo.org/records/17402877)
+
+## Available indexes
+
+Inside each file you will find
+- Encoder: `checkpoints/<name-model>.keras`
+- Index: `index/panspace.index`, and in the same folder some json files with metadata (labels)
+
+| Encoder | Kmer | Embedding Size | file                                        |
+|---------|------|----------------|---------------------------------------------|
+| CNNFCGR | 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
+| CNNFCGR | 6,7,8| 128,256,512    | check others... |
+
+We provide a **snakemake** pipeline to query a collection of genomes (from a folder), if the environment was installed with conda
+from the `.yml` file, then `snakemake` was installed. 
+
+After decompressing the `.zip` you will find two folders: `checkpoints` and `index`. You need the path to the `.keras`file and to `panspace.index`
+
 ## Try `panspace` queries for single files
 
 Clone the repository 
@@ -48,25 +68,6 @@ panspace app
 
 ## Query `index` from a folder of files
 ___
-
-
-[Download the index and encoder](https://zenodo.org/records/17402877)
-
-### Available indexes
-
-Inside each file you will find
-- Encoder: `checkpoints/<name-model>.keras`
-- Index: `index/panspace.index`, and in the same folder some json files with metadata (labels)
-
-| Encoder | Kmer | Embedding Size | file                                        |
-|---------|------|----------------|---------------------------------------------|
-| CNNFCGR | 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
-| CNNFCGR | 6,7,8| 128,256,512    | check others... |
-
-We provide a **snakemake** pipeline to query a collection of genomes (from a folder), if the environment was installed with conda
-from the `.yml` file, then `snakemake` was installed. 
-
-After decompressing the `.zip` you will find two folders: `checkpoints` and `index`. You need the path to the `.keras`file and to `panspace.index`
 
 We can query the index with 
 ```bash
