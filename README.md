@@ -78,6 +78,8 @@ panspace query-smk \
 ```
 __Note__ this is just a parser to a snakemake pipeline.
 
+If the [FCGR extension to KMC3](https://github.com/pg-space/fcgr/) is installed, we can use the flag `--fast-version` to speed up the creation of FCGRs.
+
 for more, check 
 ```bash
 panspace query-smk --help
