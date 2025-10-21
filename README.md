@@ -55,7 +55,7 @@ conda env create -f envs/cpu.yml
 conda activate panspace-cpu
 ```
 
-with **GPU** support
+or with **GPU** support
 ```bash
 conda env create -f envs/gpu.yml
 conda activate panspace-gpu
@@ -71,7 +71,10 @@ ___
 
 We can query the index with 
 ```bash
-panspace --dir-sequences <path/to/folder> --path-encoder <path/to/checkopoints/weights.keras> --path-index <path/to/panspace.index>
+panspace query-smk \
+    --dir-sequences "<path/to/folder>" \
+    --path-encoder "<path/to/checkopoints/weights.keras>" \
+    --path-index "<path/to/panspace.index>"
 ```
 __Note__ this is just a parser to a snakemake pipeline.
 
