@@ -1,6 +1,6 @@
 <div align="center">
 <!-- <div> -->
-    <img src="img/panspace-logo-v4.png" width="450" height="450">
+    <img src="img/panspace-logo-v5.png" width="450" height="450">
 </div>
 
 # `panspace` 
