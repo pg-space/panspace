@@ -48,7 +48,6 @@ git clone https://github.com/pg-space/panspace.git
 cd panspace
 ```
 
-and install the library
 with **CPU** support
 ```bash
 conda env create -f envs/cpu.yml
@@ -65,6 +64,8 @@ Then run the streamlit app
 ```bash
 panspace app
 ```
+
+**NOTE** that in the environments will be installed the workflow management `snakemake`, which is needed to run queries efficiently as we will see next.
 
 ## Query `index` from a folder of files
 ___
@@ -150,7 +151,7 @@ with **GPU** support
 pip install "panspace[gpu] @ git+https://github.com/pg-space/panspace.git"
 ```
 
-### Install from conda environment
+### Install from conda environment (suggested)
 
 with **CPU** support
 ```bash
@@ -163,9 +164,9 @@ with **GPU** support
 conda env create -f envs/gpu.yml
 conda activate panspace-gpu
 ```
+this will also install `snakemake`.
 
 ## step-by-step guide
-
 
 ### CLI
 
@@ -263,13 +264,15 @@ panspace trainer autoencoder --help
 - If using the contrastive loss, you can get the encoder with `panspace trainer extract-backbone-one-shot`
 - If using the autoencoder, you can get the encoder with `panspace trainer split-autoencoder`
 
-3. Create Index
+### 3. Create and query an index
+
+1. Create Index
 
 ```bash
 panspace index create --help
 ```
 
-4. Query Index
+2. Query Index
 
 If querying is done from FCGR in numpy format, then use
 ```bash
@@ -277,8 +280,6 @@ panspace index query --help
 ```
 
 but if you want to query the index directly from assemblies, we encourage you to use the snakemake pipelines provided above.
-
-
 
 ___
 
