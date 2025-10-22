@@ -152,31 +152,24 @@ def load_index(path_index):
 @st.cache_resource()
 def load_labels(dir_index):
     dir_index = Path(dir_index)
-    with open(dir_index.joinpath("id_embeddings.json"), "r") as fp:
-        # pos_to_path = {int(idx): path for idx,path in json.load(fp).items()}
-        pos_to_path = {int(idx): path for idx,path in orjson.loads(fp.read()).items()}
 
-    with open(dir_index.joinpath("labels.json"), "r") as fp:
-        # pos_to_label = {int(idx): label for idx,label in json.load(fp).items()}
-        pos_to_label = {int(idx): label for idx,label in orjson.loads(fp.read()).items()}
+    # Load JSON files once
+    with open(dir_index / "id_embeddings.json", "rb") as fp:
+        pos_to_path = orjson.loads(fp.read())
+    with open(dir_index / "labels.json", "rb") as fp:
+        pos_to_label = orjson.loads(fp.read())
 
-    # labels_by_sampleid = dict()
-    labels_by_sampleid = {
-        Path(path).stem: pos_to_label[pos] for pos,path in pos_to_path.items()
-    }
-    # for pos, path in pos_to_path.items():       
-    #     sampleid=Path(path).stem
-    #     label = pos_to_label[pos]
-    #     labels_by_sampleid[sampleid] = label
+    # Prepare reusable references
+    Metadata = namedtuple("Metadata", ["sample_id", "label"])
+    labels_by_sampleid = {}
+    index2metadata = {}
 
-    Metadata=namedtuple("Metadata",["sample_id","label"])
-    
-    with open(dir_index.joinpath("id_embeddings.json"),"r") as fp:
-        index2metadata = {int(idx): 
-                        Metadata(
-                            Path(path).stem, 
-                            labels_by_sampleid.get(Path(path).stem,"unknown")
-                            )   
-                            for idx, path in orjson.loads(fp.read()).items()}
+    # Build both dicts in a single loop
+    for idx_str, path in pos_to_path.items():
+        idx = int(idx_str)
+        label = pos_to_label.get(idx_str) or pos_to_label.get(idx)
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]  # faster than Path(path).stem
+        labels_by_sampleid[stem] = label
+        index2metadata[idx] = Metadata(stem, label)
 
     return labels_by_sampleid, list(index2metadata.keys()), list(index2metadata.values())

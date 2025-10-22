@@ -25,6 +25,8 @@ from panspace.streamlit.utils import (
     load_index,
     load_labels,
 )
+from panspace.streamlit.ena import fetch_ena_sample_metadata
+
 
 with st.sidebar:
     dir_img = Path(__file__).parent.parent.parent.parent
@@ -45,6 +47,8 @@ with st.sidebar:
         path_model = st.text_input("Encoder", value="indexes/8mer-mask11111111/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80/checkpoints/weights-CNNFCGR_Levels.keras")
         neighbors = st.number_input("Neighbors", value=11, min_value=1, max_value=100,)
         preprocessing = st.selectbox("Preprocessing FCGR", options = ["distribution","scale_zero_one","clip_scale_zero_one","clip"] , index = 2)
+
+        get_ena_metadata = st.toggle("Get ENA Metadata", value=False)
 
 st.set_page_config(layout="wide")
 
@@ -111,10 +115,10 @@ if path_file is not None and button:
             fcgr_matrix_plot = fcgr_matrix
         fcgr = FCGR(k=kmer_size)
         st.write("Showing FCGR...")        
-        status.update(label="FCGR Done!", state="complete", expanded=False)
+        status.update(label="FCGR", state="complete", expanded=True)
 
-    # --- Display the interactive plot
-    show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
+        # --- Display the interactive plot
+        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
 
 # --- Query
 if button_query and button and path_file is not None:
@@ -147,8 +151,19 @@ if button_query and button and path_file is not None:
         st.write("Querying...")
         query_result = query_embedding(embedding, index, neighbors, get_label, get_sampleid)
 
-        status.update(label="Query Done!", state="complete", expanded=False)
+        status.update(label="Query results", state="complete", expanded=True)
 
-    st.dataframe(query_result, column_config={
-        "url": st.column_config.LinkColumn()
-    })   
+        st.dataframe(query_result, column_config={
+            "url": st.column_config.LinkColumn()
+        })   
+
+
+    if get_ena_metadata:
+
+        with st.status("ENA metadata", expanded=True) as status:         
+            data = []
+            for sampleid_ena in query_result.sampleid:
+                print(sampleid_ena)
+                data.append(fetch_ena_sample_metadata(sample_id=sampleid_ena))
+                
+            st.dataframe(pd.DataFrame(data))
