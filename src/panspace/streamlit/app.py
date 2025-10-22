@@ -30,7 +30,7 @@ from panspace.streamlit.ena import fetch_ena_sample_metadata
 
 with st.sidebar:
     dir_img = Path(__file__).parent.parent.parent.parent
-    st.image(dir_img / "img" / "panspace-logo-v4.png", caption=f"panspace v{version}")
+    st.image(dir_img / "img" / "panspace-logo-v5.png", caption=f"panspace v{version}")
     
     st.header("FCGR")
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
