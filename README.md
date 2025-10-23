@@ -42,6 +42,10 @@ After decompressing the `.zip` you will find two folders: `checkpoints` and `ind
 
 ## Try `panspace` queries for single files
 
+<div align="center">
+    <img src="img/panspace-app.gif" width="1200" alt="panspace app demo">
+</div>
+
 Clone the repository 
 ```bash
 git clone https://github.com/pg-space/panspace.git
