@@ -35,7 +35,7 @@ with st.sidebar:
     st.header("FCGR")
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
     percentile_clip = st.slider("percentile clip", min_value=0.0, max_value=100.0, value=80.0, step=0.1, key="percentile_clip")
-
+    rotation = st.segmented_control("Rotation (counterclockwise)", options = [0, 90, 180, 270], default=0)
     col1, col2 = st.columns(2)
     with col1: width = st.number_input("width", value=800)
     with col2: height = st.number_input("height", value=800)
@@ -118,7 +118,7 @@ if path_file is not None and button:
         status.update(label="FCGR", state="complete", expanded=True)
 
         # --- Display the interactive plot
-        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height)
+        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height, rotation=rotation)
 
 # --- Query
 if button_query and button and path_file is not None:
