@@ -5,6 +5,7 @@
 tmp_kmc/
 *plots*/
 indexes/
+other-sequences/
 
 # environment
 env/

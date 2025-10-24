@@ -20,25 +20,35 @@
 
 The library is based on tensorflow and faiss index.
 
-
+## Available indexes
 
 [Download the index and encoder](https://zenodo.org/records/17402877)
 
-## Available indexes
-
-Inside each file you will find
+Inside each `.zip` file you will find
 - Encoder: `checkpoints/<name-model>.keras`
 - Index: `index/panspace.index`, and in the same folder some json files with metadata (labels)
 
-| Encoder | Kmer | Embedding Size | file                                        |
-|---------|------|----------------|---------------------------------------------|
-| CNNFCGR | 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
-| CNNFCGR | 6,7,8| 128,256,512    | check others... |
+| Kmer | Embedding Size | File index                                        |
+|------|----------------|---------------------------------------------|
+| 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
+| 6,7,8| 128,256,512    | check others... |
 
 We provide a **snakemake** pipeline to query a collection of genomes (from a folder), if the environment was installed with conda
 from the `.yml` file, then `snakemake` was installed. 
 
-After decompressing the `.zip` you will find two folders: `checkpoints` and `index`. You need the path to the `.keras`file and to `panspace.index`
+After decompressing the `.zip` you will find two folders: `checkpoints` and `index` with data corresponding to the encoder (`.keras`), the FAISS index (`.index`) and label metadata (`.json`). 
+You need the path to the `.keras`file and to `panspace.index`
+
+```bash
+.
+├── checkpoints
+│   └── weights-CNNFCGR_Levels.keras
+└── index
+    ├── embeddings.npy
+    ├── id_embeddings.json
+    ├── labels.json
+    └── panspace.index
+```
 
 ## Try `panspace` queries for single files
 
@@ -135,7 +145,9 @@ _NOTES_
 - This extension constructs FCGR representations with a C++ extending KMC3 output. The default version parses the output of KMC as a dictionary of k-mer counts and then uses the python library [ComplexCGR](https://github.com/AlgoLab/complexCGR) for the construction of the FCGR. 
 
 ## Create your own `encoder` and `index`
-___
+
+**NOTE** you can skip [step 2] creating the `encoder` and use the one trained by us (`.keras`). In this case, 
+you can try to index your dataset [step 3] (you still need to create the FCGRs though [step 1]).
  
 ### Install the package
 
@@ -233,13 +245,13 @@ panspace fcgr --help                                             (panspace-cpu)
 we suggest that for large datasets, such as [AllTheBacteria](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/), 
 is better to rely on specialized kmer counters, such as [KMC3](https://github.com/refresh-bio/KMC) or [Jellyfish](https://github.com/gmarcais/Jellyfish).
 
-We provide snakemake pipelines to create FCGRs, from:
+We provide snakemake pipelines to create FCGRs (see `scripts/`), from:
 - from a folder containing `.fa.gz` files
 - from a folder containing `.fa` files
 - [AllTheBacteria dataset](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/)
 
 Pipelines relies on [KMC3](https://github.com/refresh-bio/KMC) for k-mer counting, and an extension of it to create FCGRs: [fcgr](https://github.com/pg-space/fcgr). The later needs to be installed manually before using the snakemake pipelines.
-KMC3 does not to be installed, the snakemake pipelines takes care of that. 
+You do not need to worry about installing KMC3, the snakemake pipelines handles that.
 
 ### 2. Train an encoder to create the vector representations
 

@@ -2,8 +2,9 @@ import json
 import faiss
 import numpy as np
 import pandas as pd
-import streamlit as st
 import tensorflow as tf
+import requests
+import subprocess
 
 from collections import namedtuple
 from pathlib import Path
@@ -26,12 +27,20 @@ from panspace.streamlit.utils import (
     load_labels,
 )
 from panspace.streamlit.ena import fetch_ena_sample_metadata
+from panspace.streamlit.html import html_swarm_sphere, html_3d_sphere_logo
+
+import streamlit as st
+import streamlit.components.v1 as components
 
 
 with st.sidebar:
+
     dir_img = Path(__file__).parent.parent.parent.parent
-    st.image(dir_img / "img" / "panspace-logo-v5.png", caption=f"panspace v{version}")
-    
+    # st.image(dir_img / "img" / "panspace-logo-v5.png", caption=f"panspace v{version}")
+    components.html(html_3d_sphere_logo, height=300,)
+    _, col, _ = st.columns([2,3,1])
+    with col: st.caption(f"version {version}")
+
     st.header("FCGR")
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
     percentile_clip = st.slider("percentile clip", min_value=0.0, max_value=100.0, value=80.0, step=0.1, key="percentile_clip")
@@ -50,9 +59,11 @@ with st.sidebar:
 
         get_ena_metadata = st.toggle("Get ENA Metadata", value=False)
 
+
 st.set_page_config(layout="wide")
 
 with st.expander("About panspace :dna:"):
+
     st.markdown(
         """
         `panspace` is a Python library for querying bacterial assemblies in an embedding space.
@@ -88,6 +99,7 @@ else:
     path_file = None
 button = st.button("Submit", type="primary")
 
+
 if path_file is not None and button:
     
     if Path(path_file).exists():
@@ -114,7 +126,7 @@ if path_file is not None and button:
         else:
             fcgr_matrix_plot = fcgr_matrix
         fcgr = FCGR(k=kmer_size)
-        st.write("Showing FCGR...")        
+        st.write(f"Showing FCGR...tot kmers {fcgr_matrix.sum().sum()}")        
         status.update(label="FCGR", state="complete", expanded=True)
 
         # --- Display the interactive plot
@@ -154,9 +166,9 @@ if button_query and button and path_file is not None:
         status.update(label="Query results", state="complete", expanded=True)
 
         st.dataframe(query_result, column_config={
-            "url": st.column_config.LinkColumn()
+            "ENA Browser": st.column_config.LinkColumn(),
+            "Download Assembly": st.column_config.LinkColumn()
         })   
-
 
     if get_ena_metadata:
 

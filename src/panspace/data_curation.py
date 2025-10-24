@@ -512,3 +512,39 @@ def remove_outliers_fix_labels(dir_fcgr, path_outliers, path_ani, path_labels, p
                 fp.write(f"{path}\t{label}\n")
             except:
                 continue
+
+@app.command("distance-threshold", help="Compute a distance threshold for closest neighbors in the index.")
+def distance_threshold(
+        path_index: Annotated[Path, typer.Option("--path-index","-pi",help="path to panspace.index")],
+        path_embeddings: Annotated[Path, typer.Option("--path-embeddings", help="path to .npy file with embeddings in the index.")],
+        # outdir: Annotated[Path, typer.Option("--outdir","-o", help="output directory to save results")],
+        neighbors: Annotated[int, typer.Option("--neighbors","-n", min=1, help="number of neighbors to compute average distance to n nearest neighbors.")] = 10,
+        percentile: Annotated[float, typer.Option("--percentile","-p", help="percentil of the average distance to n nearest neighbors in the index")] = 0.95 ,
+    ):
+
+    import pandas as pd
+    import numpy as np 
+    import faiss 
+    import json
+
+    # outdir = Path(outdir)
+    # outdir.mkdir(exist_ok=True, parents=True)
+
+    # load embeddings
+    train_emb = np.load(path_embeddings).astype("float32")#[:1000]
+
+    # load index
+    console.print(":dna: loading index")
+    index = faiss.read_index(str(path_index))
+
+    # query index with train set to find threshold
+    console.print(":dna: querying index to find threshold") 
+    D_index, I_index = index.search(train_emb, k=neighbors)
+    console.print(f":dna: {len(D_index)}") 
+    
+    avg_dist = D_index.mean(axis=1)
+
+    console.print(f":dna: computing {percentile}th percentil of average distances")  
+    threshold_dist = np.percentile(avg_dist, percentile)
+
+    console.print(threshold_dist)

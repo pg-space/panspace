@@ -36,6 +36,7 @@ def count_kmers_from_fasta(fasta_path, k=5):
                 seq = str(record.seq).upper()
                 for i in range(len(seq) - k + 1):
                     kmer = seq[i:i + k]
+                    kmer = ''.join([base if base in "ACGT" else "N" for base in kmer])
                     if "N" not in kmer:  # skip ambiguous kmers
                         kmer_counts[kmer] += 1
     # plain fasta
@@ -45,6 +46,7 @@ def count_kmers_from_fasta(fasta_path, k=5):
                 seq = str(record.seq).upper()
                 for i in range(len(seq) - k + 1):
                     kmer = seq[i:i + k]
+                    kmer = ''.join([base if base in "ACGT" else "N" for base in kmer])
                     if "N" not in kmer:  # skip ambiguous kmers
                         kmer_counts[kmer] += 1
 
@@ -125,6 +127,21 @@ def create_embedding(fcgr_matrix, model, preprocessing="clip", percentile_clip=8
 
     return embedding
 
+# Function to generate a download link for each sample
+def make_download_link(sample_id):
+    import requests
+
+    url=f"https://allthebacteria-assemblies.s3.eu-west-2.amazonaws.com/{sample_id}.fa.gz"
+    # response = requests.get(url)
+    # button = st.download_button(
+    #     label=f"Click to save {sample_id}",
+    #     data=response.content,
+    #     file_name=f"{sample_id}.tar.gz",
+    #     mime="gz"
+    # )
+    return url #f'<a href="{url}" download>Download</a>'
+
+
 def query_embedding(embedding, index, neighbors, get_label, get_sampleid):
 
     D,I = index.search(embedding, neighbors)
@@ -134,8 +151,10 @@ def query_embedding(embedding, index, neighbors, get_label, get_sampleid):
     
     df = pd.DataFrame({"sampleid": neighbors_sample_ids[0], "label": neighbors_labels[0], "distance": D[0]})
     df["distance"] = df["distance"].astype("float32")
-    df["url"] = df["sampleid"].apply(lambda sid: f"https://www.ebi.ac.uk/ena/browser/view/{sid}")  # link to ENA browser
+    df["ENA Browser"] = df["sampleid"].apply(lambda sid: f"https://www.ebi.ac.uk/ena/browser/view/{sid}")  # link to ENA browser
 
+    # Option 1 — Simple clickable links inside dataframe
+    df["Download Assembly"] = df["sampleid"].apply(lambda x: make_download_link(x))
     return df
 
 
