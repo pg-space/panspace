@@ -15,7 +15,7 @@ from rich.console import Console
 
 # for typer
 # from .dataclasses_cli import 
-from .dataclasses_cli import (
+from panspace.dataclasses_cli import (
     Autoencoder,
     ModelMetricLearning, 
     Optimizer, 

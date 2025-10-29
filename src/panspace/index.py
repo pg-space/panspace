@@ -6,7 +6,7 @@ from rich.progress import track
 from rich import print 
 from rich.console import Console
 
-from .dataclasses_cli import (
+from panspace.dataclasses_cli import (
     Preprocessing,
 )
 

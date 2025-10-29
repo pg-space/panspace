@@ -75,6 +75,7 @@ def compute_fcgr_matrix(kmer_counts, k=5):
     
     return fcgr_matrix
 
+@st.cache_data()
 def clip_fcgr(fcgr_matrix, percentile_clip=80):
     # Compute the desired percentile
     percentile = np.percentile(fcgr_matrix, percentile_clip)

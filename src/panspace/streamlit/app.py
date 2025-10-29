@@ -5,11 +5,15 @@ import pandas as pd
 import tensorflow as tf
 import requests
 import subprocess
+import plotly.express as px
 
 from collections import namedtuple
 from pathlib import Path
 from rich.progress import track
 from complexcgr import FCGR
+from matplotlib.colors import LinearSegmentedColormap
+
+green_black = LinearSegmentedColormap.from_list("green_black", ["black", "#66FF00"])
 
 from panspace import version
 from panspace.streamlit.utils import (
@@ -32,6 +36,7 @@ from panspace.streamlit.html import html_swarm_sphere, html_3d_sphere_logo
 import streamlit as st
 import streamlit.components.v1 as components
 
+color_scales = ["gray"] + px.colors.named_colorscales()
 
 with st.sidebar:
 
@@ -45,6 +50,12 @@ with st.sidebar:
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
     percentile_clip = st.slider("percentile clip", min_value=0.0, max_value=100.0, value=80.0, step=0.1, key="percentile_clip")
     rotation = st.segmented_control("Rotation (counterclockwise)", options = [0, 90, 180, 270], default=0)
+
+    col1, col2 = st.columns(2)
+    with col1: color_continuous_scale = st.selectbox("Color Scale", options = color_scales, index = 0)
+    with col2: reverse_color = st.toggle("reverse", value=True)
+
+    
     col1, col2 = st.columns(2)
     with col1: width = st.number_input("width", value=800)
     with col2: height = st.number_input("height", value=800)
@@ -77,7 +88,7 @@ with st.expander("About panspace :dna:"):
         For detailed documentation and usage examples, visit the [panspace documentation](https://github.com/pg-space/panspace).
         """
     )
-    st.image(dir_img / "img" / "panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
+    # st.image(dir_img / "img" / "panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
 
 
 path = st.text_input("Path to FASTA file or directory", 
@@ -107,7 +118,7 @@ if path_file is not None and button:
     else:
         st.error("File does not exists")
         
-    with st.status("Query", expanded=True) as status:
+    with st.status("FCGR", expanded=True) as status:
 
         st.write("Counting k-mers...")
         kmers = count_kmers_from_fasta(path_file, k = kmer_size)
@@ -130,7 +141,8 @@ if path_file is not None and button:
         status.update(label="FCGR", state="complete", expanded=True)
 
         # --- Display the interactive plot
-        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height, rotation=rotation)
+        color_scale = color_continuous_scale if not reverse_color else color_continuous_scale + "_r"
+        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height, rotation=rotation, color_continuous_scale=color_scale)
 
 # --- Query
 if button_query and button and path_file is not None:

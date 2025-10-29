@@ -4,7 +4,7 @@ import plotly.express as px
 from complexcgr import FCGR
 
 # --- Function to display the interactive FCGR ---
-def show_fcgr(fcgr_matrix, kmers, width=800, height = 800, rotation: int = 90): 
+def show_fcgr(fcgr_matrix, kmers, width=800, height = 800, rotation: int = 90, color_continuous_scale="gray_r"): 
             #   transpose:bool=False):
     """
     Display an interactive FCGR heatmap in Streamlit.
@@ -16,14 +16,6 @@ def show_fcgr(fcgr_matrix, kmers, width=800, height = 800, rotation: int = 90):
     
     nrows, ncols = fcgr_matrix.shape
 
-    # if transpose:
-    #     hover_text = [
-    #         [f"k-mer: {pixel2kmer[(j,i)]}<br>Value: {fcgr_matrix[j, i]:.4f}"
-    #         for j in range(ncols)]
-    #         for i in range(nrows)
-    #         ]
-    #     fcgr_matrix = fcgr_matrix.T
-    # else:
     hover_text = [
         [f"k-mer: {pixel2kmer[(i,j)]}<br>Value: {fcgr_matrix[i, j]:.4f}"
         for j in range(ncols)]
@@ -47,7 +39,7 @@ def show_fcgr(fcgr_matrix, kmers, width=800, height = 800, rotation: int = 90):
 
     fig = px.imshow(
         fcgr_matrix,
-        color_continuous_scale="gray_r",
+        color_continuous_scale=color_continuous_scale,
         labels=dict(color="Frequency"),
     )
 
