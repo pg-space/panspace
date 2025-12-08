@@ -8,7 +8,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
   <a href="https://doi.org/10.1101/2025.03.19.644115"><img src="https://img.shields.io/badge/DOI-10.1101%2F2025.03.19.644115-blue" alt="DOI"></a>
   <a href="https://pypi.org/project/panspace/"><img src="https://img.shields.io/pypi/v/panspace.svg?logo=pypi" alt="PyPI"></a>
-  <a href="https://github.com/pg-space/panspace"><img src="https://img.shields.io/badge/GitHub-pg--space%2Ffcgr-blue?logo=github" alt="GitHub"></a>
+  <a href="https://github.com/pg-space/panspace"><img src="https://img.shields.io/badge/GitHub-pg--space%2Fpansace-blue?logo=github" alt="GitHub"></a>
 </p>
 
 
