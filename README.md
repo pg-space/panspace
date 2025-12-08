@@ -116,7 +116,6 @@ panspace app
     <img src="img/panspace-app.gif" width="1200" alt="PanSpace app demo">
 </div>
 
-
 ### Query with Pre-trained Models
 
 1. **Download pre-trained encoder and index** from [Zenodo](https://zenodo.org/records/17402877)
@@ -155,6 +154,37 @@ Each `.zip` contains:
 - **Encoder**: `checkpoints/<model-name>.keras`
 - **Index**: `index/panspace.index`
 - **Metadata**: Label mappings and configurations
+
+---
+
+
+## Running the App with Docker
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+
+### Run the App
+```bash
+sudo docker-compose up --build
+```
+
+The app will be available at **http://localhost:8501**
+
+To run in the background (detached mode):
+```bash
+sudo docker-compose up --build -d
+```
+
+### Stop the App
+```bash
+sudo docker-compose down
+```
+
+### Using Your Own Data
+
+Place your files in the local folders:
+- `./indexes/` — your FAISS indexes and metadata
+- `./sequences/` — your FASTA files for querying
 
 ---
 
