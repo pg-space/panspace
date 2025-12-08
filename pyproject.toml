@@ -13,10 +13,10 @@ readme = "README.md"
 license = { file = "LICENSE" }
 keywords = ["index", "fcgr", "assemblies", "bacteria"]
 classifiers = [
-    "Intended Audience :: Bioinformaticians",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Programming Language :: Python",
 ]
-
 dependencies = [
     "typer==0.12.3",
     "click==8.1.7",

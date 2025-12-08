@@ -22,6 +22,7 @@ from panspace.streamlit.utils import (
     clip_fcgr,
     create_embedding,
     query_embedding,
+    count_kmers_from_contig
 )
 from panspace.streamlit.interactive_plot import show_fcgr
 
@@ -38,6 +39,14 @@ import streamlit.components.v1 as components
 
 color_scales = ["gray"] + px.colors.named_colorscales()
 
+st.set_page_config(layout="wide", 
+                page_icon="🧬", 
+                page_title="panspace",
+                menu_items={
+                        'About': 'https://github.com/pg-space/panspace',
+                })
+
+
 with st.sidebar:
 
     dir_img = Path(__file__).parent.parent.parent.parent
@@ -46,7 +55,29 @@ with st.sidebar:
     _, col, _ = st.columns([2,3,1])
     with col: st.caption(f"version {version}")
 
+    path = st.text_input("Path to FASTA file or directory", 
+                          value="sequences/SAMEA747610.fa", 
+                          help="Enter the path to your FASTA file here. Accepted extension: .fasta, .fa, .fna .fa.gz .fasta.gz")
+    path = Path(path)
+    if path.is_dir() and path.exists():
+        paths = list(path.rglob("*.fa")) + \
+                list(path.rglob("*.fa.gz")) + \
+                list(path.rglob("*.fasta.gz")) + \
+                list(path.rglob("*.fna")) + \
+                list(path.rglob("*.fasta"))
+        if len(paths) == 0: st.warning("No files detected")
+        path_file = st.selectbox("Select file", [str(x) for x in paths])
+    elif path.is_file() and path.exists():
+        assert any([str(path).endswith(x) for x in [".fa",".fasta",".fna",".fa.gz",".fasta.gz"]]), "incorrect extension file"
+        path_file = path
+    else:
+        st.warning(f"{path} does not exists")
+        path_file = None
+    button = st.button("Submit", type="primary")
+
     st.header("FCGR")
+    from_contig = st.toggle("From contig", value=False)
+    if from_contig: id_contig = st.number_input("Contig ID", value=0, min_value=0, step=1)
     kmer_size = st.slider("k-mer size", min_value=2, max_value=11, value=8, step=1, key="kmer_size")
     percentile_clip = st.slider("percentile clip", min_value=0.0, max_value=100.0, value=80.0, step=0.1, key="percentile_clip")
     rotation = st.segmented_control("Rotation (counterclockwise)", options = [0, 90, 180, 270], default=0)
@@ -71,46 +102,7 @@ with st.sidebar:
         get_ena_metadata = st.toggle("Get ENA Metadata", value=False)
 
 
-st.set_page_config(layout="wide")
-
-with st.expander("About panspace :dna:"):
-
-    st.markdown(
-        """
-        `panspace` is a Python library for querying bacterial assemblies in an embedding space.
-        
-        **Key Features:**
-        - Based on Frequency Chaos Representation of DNA (FCGR).
-        - Index is embedding based.
-        - Fast and accurate identification of species against AllTheBacteria data base.
-        
-        **Documentation:**
-        For detailed documentation and usage examples, visit the [panspace documentation](https://github.com/pg-space/panspace).
-        """
-    )
-    # st.image(dir_img / "img" / "panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")
-
-
-path = st.text_input("Path to FASTA file or directory", 
-                          value="sequences/SAMEA747610.fa", 
-                          help="Enter the path to your FASTA file here. Accepted extension: .fasta, .fa, .fna .fa.gz")
-path = Path(path)
-if path.is_dir() and path.exists():
-    paths = list(path.rglob("*.fa")) + \
-            list(path.rglob("*.fa.gz")) + \
-            list(path.rglob("*.fna")) + \
-            list(path.rglob("*.fasta"))
-    if len(paths) == 0: st.warning("No files detected")
-    path_file = st.selectbox("Select file", [str(x) for x in paths])
-elif path.is_file() and path.exists():
-    assert any([str(path).endswith(x) for x in [".fa",".fasta",".fna",".fa.gz"]]), "incorrect extension file"
-    path_file = path
-else:
-    st.warning(f"{path} does not exists")
-    path_file = None
-button = st.button("Submit", type="primary")
-
-
+my_bar = st.progress(0, text="FCGR")
 if path_file is not None and button:
     
     if Path(path_file).exists():
@@ -118,31 +110,39 @@ if path_file is not None and button:
     else:
         st.error("File does not exists")
         
-    with st.status("FCGR", expanded=True) as status:
+    # with st.status("FCGR", expanded=True) as status:
 
-        st.write("Counting k-mers...")
+    my_bar.progress(20,text="FCGR: Counting k-mers")
+        # st.write("Counting k-mers...")
+    if from_contig:
+        kmers = count_kmers_from_contig(path_file, k = kmer_size, contig_id = id_contig)
+    else:   
         kmers = count_kmers_from_fasta(path_file, k = kmer_size)
 
-        if len(kmers) > 0:
-            st.write("k-mers done!")
-        else:
-            st.write("No k-mers found")
+    if len(kmers) > 0:
+        # st.write("k-mers done!")
+        my_bar.progress(50,text="FCGR: Counting done")
+    else:
+        my_bar.progress(50,text="FCGR: no kmers")
 
-        st.write("Computing FCGR matrix...")
-        fcgr_matrix = compute_fcgr_matrix(kmers, k = kmer_size)
+    # st.write("Computing FCGR matrix...")
+    my_bar.progress(70,text="FCGR: Computing FCGR matrix")
+    fcgr_matrix = compute_fcgr_matrix(kmers, k = kmer_size)
 
-        if percentile_clip < 100:
-            st.write("Applying clipping to FCGR") 
-            fcgr_matrix_plot = clip_fcgr(fcgr_matrix, percentile_clip=percentile_clip)
-        else:
-            fcgr_matrix_plot = fcgr_matrix
-        fcgr = FCGR(k=kmer_size)
-        st.write(f"Showing FCGR...tot kmers {fcgr_matrix.sum().sum()}")        
-        status.update(label="FCGR", state="complete", expanded=True)
+    if percentile_clip < 100:
+        # st.write("Applying clipping to FCGR") 
+        my_bar.progress(90,text="FCGR: Clipping FCGR matrix")
+        fcgr_matrix_plot = clip_fcgr(fcgr_matrix, percentile_clip=percentile_clip)
+    else:
+        fcgr_matrix_plot = fcgr_matrix
+    fcgr = FCGR(k=kmer_size)
+    # st.write(f"Showing FCGR...tot kmers {fcgr_matrix.sum().sum()}")        
+    # status.update(label="FCGR", state="complete", expanded=True)
+    my_bar.progress(100,text="FCGR: Done..displaying plot")
 
-        # --- Display the interactive plot
-        color_scale = color_continuous_scale if not reverse_color else color_continuous_scale + "_r"
-        show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height, rotation=rotation, color_continuous_scale=color_scale)
+    # --- Display the interactive plot
+    color_scale = color_continuous_scale if not reverse_color else color_continuous_scale + "_r"
+    show_fcgr(fcgr_matrix_plot, kmers, width=width, height=height, rotation=rotation, color_continuous_scale=color_scale)
 
 # --- Query
 if button_query and button and path_file is not None:
@@ -191,3 +191,22 @@ if button_query and button and path_file is not None:
                 data.append(fetch_ena_sample_metadata(sample_id=sampleid_ena))
                 
             st.dataframe(pd.DataFrame(data))
+
+
+
+with st.expander("About panspace :dna:"):
+
+    st.markdown(
+        """
+        `panspace` is a Python library for querying bacterial assemblies in an embedding space.
+        
+        **Key Features:**
+        - Based on Frequency Chaos Representation of DNA (FCGR).
+        - Index is embedding based.
+        - Fast and accurate identification of species against AllTheBacteria data base.
+        
+        **Documentation:**
+        For detailed documentation and usage examples, visit the [panspace documentation](https://github.com/pg-space/panspace).
+        """
+    )
+    # st.image(dir_img / "img" / "panspace-pipeline.png", width="stretch", caption=f"Querying assemblies in panspace")

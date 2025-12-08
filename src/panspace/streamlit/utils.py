@@ -53,6 +53,55 @@ def count_kmers_from_fasta(fasta_path, k=5):
     return dict(kmer_counts)
 
 @st.cache_data()
+def count_kmers_from_contig(fasta_path, contig_id=0, k=5):
+    """
+    Count k-mer frequencies in a contig sequence.
+
+    Args:
+        fasta_path (str): Path to the FASTA file.
+        contig (str): Contig sequence.
+        k (int): K-mer size.
+
+    Returns:
+        dict: {kmer: frequency}
+    """
+    kmer_counts = Counter()
+
+    num_contig = 0
+    # gzip files
+    if str(fasta_path).endswith(".gz"):
+        
+        with gzip.open(fasta_path, "rt") as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                if num_contig == contig_id:
+
+                    seq = str(record.seq).upper()
+                    for i in range(len(seq) - k + 1):
+                        kmer = seq[i:i + k]
+                        kmer = ''.join([base if base in "ACGT" else "N" for base in kmer])
+                        if "N" not in kmer:  # skip ambiguous kmers
+                            kmer_counts[kmer] += 1
+                    return dict(kmer_counts) 
+                num_contig += 1
+
+    # plain fasta
+    else:
+        with open(fasta_path, "r") as fasta_path:
+            for record in SeqIO.parse(fasta_path, "fasta"):
+                
+                if num_contig == contig_id:
+                    
+                    seq = str(record.seq).upper()
+                    for i in range(len(seq) - k + 1):
+                        kmer = seq[i:i + k]
+                        kmer = ''.join([base if base in "ACGT" else "N" for base in kmer])
+                        if "N" not in kmer:  # skip ambiguous kmers
+                            kmer_counts[kmer] += 1
+
+                    return dict(kmer_counts)
+                num_contig += 1
+
+@st.cache_data()
 def compute_fcgr_matrix(kmer_counts, k=5):
     """
     Generate FCGR matrix from k-mer counts.
