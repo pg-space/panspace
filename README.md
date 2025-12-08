@@ -623,21 +623,6 @@ panspace/
 - Process large datasets in batches
 - Configure KMC3 memory limits in `config_*.yml`
 
-<!-- --- -->
-
-<!-- ## Benchmarks
-
-Query performance on different dataset sizes:
-
-| Dataset Size | Index Type | Query Time | Memory |
-|-------------|-----------|-----------|--------|
-| 10K genomes | Flat | ~50ms | 2GB |
-| 100K genomes | IVF1024,Flat | ~10ms | 15GB |
-| 1M genomes | HNSW32 | ~5ms | 100GB |
-| 3.5M genomes (AllTheBacteria) | HNSW32 | ~8ms | 350GB |
-
-*Benchmarked on Intel Xeon Gold 6248R, 128GB RAM* -->
-
 ---
 
 ## Citation
@@ -645,12 +630,13 @@ Query performance on different dataset sizes:
 If you use PanSpace in your research, please cite:
 
 ```bibtex
-@article{panspace2025,
-    title={PanSpace: Fast and Scalable Indexing for Massive Bacterial Databases},
-    author={Avila Cartes, Jorge and others},
-    journal={bioRxiv},
-    year={2025},
-    doi={10.1101/2025.03.19.644115}
+@article{cartes2025panspace,
+  title={PanSpace: Fast and Scalable Indexing for Massive Bacterial Databases},
+  author={Cartes, Jorge Avila and Ciccolella, Simone and Denti, Luca and Dandinasivara, Raghuram and Vedova, Gianluca Della and Bonizzoni, Paola and Sch{\"o}nhuth, Alexander},
+  journal={bioRxiv},
+  pages={2025--03},
+  year={2025},
+  publisher={Cold Spring Harbor Laboratory}
 }
 ```
 
