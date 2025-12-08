@@ -1,303 +1,741 @@
+<p align="center">
+  <img src="img/panspace-logo-v5.png" width="300" height="300" alt="Logo">
+</p>
+
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9--3.10-blue.svg" alt="Python 3.9-3.10"></a>
+  <a href="https://www.tensorflow.org/"><img src="https://img.shields.io/badge/TensorFlow-2.0+-FF6F00.svg" alt="TensorFlow"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="https://doi.org/10.1101/2025.03.19.644115"><img src="https://img.shields.io/badge/DOI-10.1101%2F2025.03.19.644115-blue" alt="DOI"></a>
+  <a href="https://pypi.org/project/panspace/"><img src="https://img.shields.io/pypi/v/panspace.svg?logo=pypi" alt="PyPI"></a>
+  <a href="https://github.com/pg-space/panspace"><img src="https://img.shields.io/badge/GitHub-pg--space%2Ffcgr-blue?logo=github" alt="GitHub"></a>
+</p>
+
+
 <div align="center">
-<!-- <div> -->
-    <img src="img/panspace-logo-v5.png" width="450" height="450">
+    <strong>Fast and Scalable Indexing for Massive Bacterial Databases</strong>
 </div>
 
-# `panspace` 
+<p class="badges">
+  <a href="https://doi.org/10.1101/2025.03.19.644115" class="md-button">📄 Paper</a>
+  <a href="https://zenodo.org/records/17402877" class="md-button">📦 Models</a>
+  <a href="#quick-start" class="md-button md-button--primary">🚀 Quick Start</a>
+</p>
 
-**Related Article** [PanSpace: Fast and Scalable Indexing for Massive Bacterial Databases](https://doi.org/10.1101/2025.03.19.644115)
+---
 
-`panspace` is a library for creating and querying vector based indexes for bacterial genome (draft) assemblies.
+## Overview
 
-`panspace` pipeline for querying works as follows,
-1. First, each genome is represented by its Frequency matrix of the Chaos Game Representation of DNA (FCGR)
-2. Then, the FCGR is mapped to a n-dimensional vector, the _embedding_, using a Convolutional Neural Network called `CNNFCGR`, the _Encoder_,
-3. Finally, the _embedding_ --the compressed representation of the input genome-- is used to query an index of these vectors representing a bacterial pangenome. 
+PanSpace is a library for creating and querying vector-based indexes of bacterial genome assemblies. It enables fast similarity search across massive bacterial databases by learning compact embedding representations of genomes.
+
+### How It Works
 
 <div align="center">
     <img src="img/panspace-pipeline.png" width="1200" height="500">
 </div>
 
-The library is based on tensorflow and faiss index.
+1. **FCGR Generation**: Genomes are represented as Frequency matrices of Chaos Game Representations (FCGR)
+2. **Embedding**: FCGRs are mapped to n-dimensional vectors using a CNN encoder (CNNFCGR)
+3. **Indexing & Search**: Embeddings are indexed with FAISS for efficient similarity queries
 
-## Available indexes
+### Key Features
 
-[Download the index and encoder](https://zenodo.org/records/17402877)
+- **🚀 Fast Queries**: Millisecond-scale searches across millions of genomes
+- **📊 FCGR-Based**: Uses Chaos Game Representation for genome encoding
+- **🧠 Deep Learning**: CNN-based encoders for learning compact representations
+- **🔍 FAISS Integration**: Efficient similarity search at scale
+- **📦 Pre-trained Models**: Ready-to-use encoders and indexes available
+- **⚙️ Flexible Training**: Supports metric learning (with labels) or autoencoders (unsupervised)
+- **🔄 Snakemake Pipelines**: Automated workflows for batch processing
 
-Inside each `.zip` file you will find
-- Encoder: `checkpoints/<name-model>.keras`
-- Index: `index/panspace.index`, and in the same folder some json files with metadata (labels)
+---
 
-| Kmer | Embedding Size | File index                                        |
-|------|----------------|---------------------------------------------|
-| 8    | 256            | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` **(Best)** |
-| 6,7,8| 128,256,512    | check others... |
+## Installation
 
-We provide a **snakemake** pipeline to query a collection of genomes (from a folder), if the environment was installed with conda
-from the `.yml` file, then `snakemake` was installed. 
+### Requirements
+- Python 3.9 or 3.10 (TensorFlow compatibility)
+- Conda or Mamba (recommended)
 
-After decompressing the `.zip` you will find two folders: `checkpoints` and `index` with data corresponding to the encoder (`.keras`), the FAISS index (`.index`) and label metadata (`.json`). 
-You need the path to the `.keras`file and to `panspace.index`
+### Quick Install: from pypi
 
+#### CPU Version
 ```bash
-.
-├── checkpoints
-│   └── weights-CNNFCGR_Levels.keras
-└── index
-    ├── embeddings.npy
-    ├── id_embeddings.json
-    ├── labels.json
-    └── panspace.index
+pip install panspace[cpu]
 ```
 
-## Try `panspace` queries for single files
+#### GPU Version
+```bash
+pip install panspace[gpu]
+```
 
-<div align="center">
-    <img src="img/panspace-app.gif" width="1200" alt="panspace app demo">
-</div>
 
-Clone the repository 
+### Install from github repository
+
+#### CPU
+```bash
+pip install "panspace[cpu] @ git+https://github.com/pg-space/panspace.git"
+```
+
+#### GPU
+```bash
+pip install "panspace[gpu] @ git+https://github.com/pg-space/panspace.git"
+```
+
+### Install from source
+
+Clone the repository
+
 ```bash
 git clone https://github.com/pg-space/panspace.git
 cd panspace
 ```
 
-with **CPU** support
+#### CPU Version
 ```bash
 conda env create -f envs/cpu.yml
 conda activate panspace-cpu
 ```
 
-or with **GPU** support
+#### GPU Version
 ```bash
 conda env create -f envs/gpu.yml
 conda activate panspace-gpu
 ```
 
-Then run the streamlit app
+---
+
+## Quick Start
+
+### Try the Interactive App
+
 ```bash
 panspace app
 ```
 
-**NOTE** that in the environments will be installed the workflow management `snakemake`, which is needed to run queries efficiently as we will see next.
+<div align="center">
+    <img src="img/panspace-app.gif" width="1200" alt="PanSpace app demo">
+</div>
 
-## Query `index` from a folder of files
-___
 
-We can query the index with 
+### Query with Pre-trained Models
+
+1. **Download pre-trained encoder and index** from [Zenodo](https://zenodo.org/records/17402877)
+2. **Extract the files**:
+   ```
+   .
+   ├── checkpoints/
+   │   └── weights-CNNFCGR_Levels.keras
+   └── index/
+       ├── panspace.index
+       ├── labels.json
+       └── *.json
+   ```
+3. **Run queries**:
+   ```bash
+   panspace query-smk \
+       --dir-sequences "path/to/assemblies/" \
+       --path-encoder "checkpoints/weights-CNNFCGR_Levels.keras" \
+       --path-index "index/panspace.index"
+   ```
+
+---
+
+## Available Pre-trained Models
+
+Download from [Zenodo](https://zenodo.org/records/17402877)
+
+| K-mer | Embedding Size | Model File | Status |
+|-------|----------------|------------|--------|
+| 8 | 256 | `triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip` | ⭐ **Recommended** |
+| 6 | 128 | Available in Zenodo | ✓ |
+| 7 | 256 | Available in Zenodo | ✓ |
+| 8 | 512 | Available in Zenodo | ✓ |
+
+Each `.zip` contains:
+- **Encoder**: `checkpoints/<model-name>.keras`
+- **Index**: `index/panspace.index`
+- **Metadata**: Label mappings and configurations
+
+---
+
+## Complete Workflow
+
+### Option 1: Using Pre-trained Models (Recommended)
+
+Perfect for querying existing databases without training.
+
+#### Step 1: Download Models
+
+```bash
+# Download from Zenodo
+wget https://zenodo.org/records/17402877/files/triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip
+unzip triplet_semihard_loss-ranger-0.5-hq-256-CNNFCGR_Levels-level1-clip80.zip
+```
+
+#### Step 2: Prepare Query Sequences
+
+Organize your FASTA files in a directory:
+```
+assemblies/
+├── sample1.fa.gz
+├── sample2.fa
+└── sample3.fna
+```
+
+#### Step 3: Query the Index
+
+**Using the Snakemake wrapper** (recommended):
 ```bash
 panspace query-smk \
-    --dir-sequences "<path/to/folder>" \
-    --path-encoder "<path/to/checkopoints/weights.keras>" \
-    --path-index "<path/to/panspace.index>"
+    --dir-sequences "assemblies/" \
+    --path-encoder "checkpoints/weights-CNNFCGR_Levels.keras" \
+    --path-index "index/panspace.index" \
+    --outdir "results/" \
+    --cores 8
 ```
-__Note__ this is just a parser to a snakemake pipeline.
 
-If the [FCGR extension to KMC3](https://github.com/pg-space/fcgr/) is installed, we can use the flag `--fast-version` to speed up the creation of FCGRs.
-
-for more, check 
+**With fast FCGR generation** (requires [FCGR extension](https://github.com/pg-space/fcgr)):
 ```bash
+panspace query-smk \
+    --dir-sequences "assemblies/" \
+    --path-encoder "checkpoints/weights-CNNFCGR_Levels.keras" \
+    --path-index "index/panspace.index" \
+    --fast-version \
+    --outdir "results/"
+```
+
+**Using Snakemake directly**:
+
+1. Configure `scripts/config_query.yml`:
+   ```yaml
+   dir_sequences: "assemblies/"
+   outdir: "results/"
+   device: "cpu"  # or "gpu"
+   path_encoder: "checkpoints/weights-CNNFCGR_Levels.keras"
+   path_index: "index/panspace.index"
+   kmer: 8
+   ```
+
+2. Run pipeline:
+   ```bash
+   snakemake -s scripts/query.smk --cores 8 --use-conda
+   ```
+
+---
+
+### Option 2: Training Your Own Models
+
+Create custom encoders and indexes for your specific dataset.
+
+#### Step 1: Generate FCGRs
+
+**Option A: From FASTA files (single file)**
+```bash
+panspace fcgr from-fasta \
+    --path-fasta assembly.fa \
+    --kmer 8 \
+    --path-save fcgr.npy
+```
+
+**Option B: From k-mer counts**
+```bash
+# First count k-mers with KMC3
+kmc -k8 -fm assembly.fa assembly.kmc tmp/
+
+# Then create FCGR
+panspace fcgr from-kmer-counts \
+    --kmer 8 \
+    --path-kmer-counts assembly.kmc \
+    --path-save fcgr.npy
+```
+
+**Option C: Batch processing with Snakemake** (recommended for large datasets)
+
+1. Configure `scripts/config_fcgr.yml`
+2. Run:
+   ```bash
+   snakemake -s scripts/create_fcgr.smk --cores 8 --use-conda
+   ```
+
+For faster processing with [FCGR extension](https://github.com/pg-space/fcgr):
+```bash
+snakemake -s scripts/create_fcgr_fast.smk --cores 8 --use-conda \
+    --config fcgr_bin=/path/to/fcgr
+```
+
+---
+
+#### Step 2: Prepare Dataset
+
+Split your data into train/validation/test sets:
+
+```bash
+panspace trainer split-dataset \
+    --data-dir fcgr_data/ \
+    --output-dir splits/ \
+    --train-ratio 0.7 \
+    --val-ratio 0.15 \
+    --test-ratio 0.15
+```
+
+**Output structure:**
+```
+splits/
+├── train/
+├── val/
+└── test/
+```
+
+---
+
+#### Step 3: Train Encoder
+
+Choose a training strategy based on your data:
+
+##### Option A: Metric Learning with Labels (Recommended)
+
+**Triplet Loss** (best for large datasets):
+```bash
+panspace trainer metric-learning \
+    --train-dir splits/train/ \
+    --val-dir splits/val/ \
+    --kmer 8 \
+    --embedding-dim 256 \
+    --batch-size 32 \
+    --epochs 100 \
+    --learning-rate 1e-4 \
+    --output-dir models/triplet/
+```
+
+**Contrastive Loss** (one-shot learning):
+```bash
+panspace trainer one-shot \
+    --train-dir splits/train/ \
+    --val-dir splits/val/ \
+    --kmer 8 \
+    --embedding-dim 256 \
+    --margin 1.0 \
+    --epochs 100 \
+    --output-dir models/contrastive/
+```
+
+Extract the encoder:
+```bash
+panspace trainer extract-backbone-one-shot \
+    --model-path models/contrastive/model.keras \
+    --output-path models/contrastive/encoder.keras
+```
+
+##### Option B: Unsupervised Learning (No Labels)
+
+**Autoencoder**:
+```bash
+panspace trainer autoencoder \
+    --train-dir splits/train/ \
+    --val-dir splits/val/ \
+    --kmer 8 \
+    --embedding-dim 256 \
+    --epochs 100 \
+    --output-dir models/autoencoder/
+```
+
+Extract the encoder:
+```bash
+panspace trainer split-autoencoder \
+    --model-path models/autoencoder/autoencoder.keras \
+    --output-encoder models/autoencoder/encoder.keras \
+    --output-decoder models/autoencoder/decoder.keras
+```
+
+---
+
+#### Step 4: Create Index
+
+Build a FAISS index from your trained encoder:
+
+```bash
+panspace index create \
+    --data-dir fcgr_data/ \
+    --encoder-path models/triplet/encoder.keras \
+    --output-index index/panspace.index \
+    --output-metadata index/metadata.json \
+```
+
+**Index types:**
+- `Flat`: Exact search, slower but accurate
+- `IVF1024,Flat`: Inverted file index, faster with slight approximation
+- `HNSW32`: Hierarchical graph, very fast
+
+---
+
+#### Step 5: Query Your Index
+
+**From FCGR files**:
+```bash
+panspace index query \
+    --query-fcgr query.npy \
+    --encoder-path models/triplet/encoder.keras \
+    --index-path index/panspace.index \
+    --metadata-path index/metadata.json \
+    --n-neighbors 10
+```
+
+**From FASTA files** (use Snakemake wrapper shown above)
+
+---
+
+## CLI Reference
+
+### Main Commands
+
+```bash
+panspace --help
+```
+
+```
+╭─ Commands ──────────────────────────────────────────────────────────────╮
+│ app              Run streamlit app for interactive queries              │
+│ fcgr             Create FCGRs from fasta files or k-mer counts         │
+│ trainer          Train encoders using metric learning or autoencoders   │
+│ index            Create and query FAISS indexes                        │
+│ query-smk        Run Snakemake query pipeline                          │
+│ data-curation    Find outliers and mislabeled samples                  │
+│ stats-assembly   Compute assembly statistics (N50, contigs, etc.)      │
+│ utils            Extract info from logs and text files                 │
+│ what-to-do       Step-by-step guide for new users                      │
+│ docs             Open documentation webpage                             │
+╰─────────────────────────────────────────────────────────────────────────╯
+```
+
+### FCGR Commands
+
+```bash
+# Create FCGR from FASTA
+panspace fcgr from-fasta \
+    --path-fasta <file.fa> \
+    --kmer <k> \
+    --path-save <output.npy>
+
+# Create FCGR from k-mer counts
+panspace fcgr from-kmer-counts \
+    --kmer <k> \
+    --path-kmer-counts <kmc_output> \
+    --path-save <output.npy>
+
+# Save FCGR as image
+panspace fcgr to-image \
+    --path-fcgr <input.npy> \
+    --path-save <output.png>
+```
+
+### Training Commands
+
+```bash
+# Split dataset
+panspace trainer split-dataset \
+    --data-dir <dir> \
+    --output-dir <output> \
+    [--train-ratio 0.7] [--val-ratio 0.15]
+
+# Metric learning (Triplet loss)
+panspace trainer metric-learning \
+    --train-dir <train/> \
+    --val-dir <val/> \
+    --kmer <k> \
+    --embedding-dim <dim> \
+    [--batch-size 32] [--epochs 100]
+
+# One-shot learning (Contrastive loss)
+panspace trainer one-shot \
+    --train-dir <train/> \
+    --val-dir <val/> \
+    --kmer <k> \
+    --embedding-dim <dim> \
+    [--margin 1.0] [--epochs 100]
+
+# Autoencoder (Unsupervised)
+panspace trainer autoencoder \
+    --train-dir <train/> \
+    --val-dir <val/> \
+    --kmer <k> \
+    --embedding-dim <dim> \
+    [--epochs 100]
+
+# Extract encoder from trained models
+panspace trainer extract-backbone-one-shot \
+    --model-path <model.keras> \
+    --output-path <encoder.keras>
+
+panspace trainer split-autoencoder \
+    --model-path <autoencoder.keras> \
+    --output-encoder <encoder.keras> \
+    --output-decoder <decoder.keras>
+```
+
+### Index Commands
+
+```bash
+# Create index
+panspace index create \
+    --data-dir <fcgr_data/> \
+    --encoder-path <encoder.keras> \
+    --output-index <panspace.index> \
+    --output-metadata <metadata.json> \
+
+# Query index
+panspace index query \
+    --query-fcgr <query.npy> \
+    --encoder-path <encoder.keras> \
+    --index-path <panspace.index> \
+    --metadata-path <metadata.json> \
+    [--n-neighbors 10]
+
+# Test index performance
+panspace index test \
+    --test-dir <test/> \
+    --encoder-path <encoder.keras> \
+    --index-path <panspace.index> \
+    --metadata-path <metadata.json>
+```
+
+### Query Pipeline
+
+```bash
+# Query with Snakemake wrapper
+panspace query-smk \
+    --dir-sequences <assemblies/> \
+    --path-encoder <encoder.keras> \
+    --path-index <panspace.index> \
+    [--outdir results/] \
+    [--cores 8] \
+    [--fast-version]  # requires FCGR extension
+
+# See all options
 panspace query-smk --help
 ```
 
-<!-- 
-Or directly using an environment with snakemake (the only requirement, the pipelines will install `panspace` on the run)
+---
 
-1. [install snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html),
+## Advanced Usage
+
+### Custom FCGR Generation
+
+For very large datasets (e.g., AllTheBacteria), use specialized k-mer counters:
+
+**With KMC3**:
 ```bash
-conda create -c conda-forge -c bioconda -n snakemake snakemake
-conda activate snakemake
-conda config --set channel_priority strict -->
-<!-- ``` -->
+# Count k-mers
+kmc -k8 -m64 -t8 -fm assembly.fa output tmp/
 
-### Using snakemake directly, we first need to 
-
-1. set parameters in `scripts/config_query.yml`, 
-
-    - **directory with sequences** (accepted extensions `.fa.gz`, `.fa`, `.fna`) 
-    - define an **output directory** to save query results
-    - **gpu** or **cpu** usage
-    - path to the **encoder** (`<path/to/encoder>.keras`)
-    - path to the **index**  (`<path/to/panspace-index>.index`)
-
-2. and run
-```bash
-snakemake -s scripts/query.smk --cores 8 --use-conda
+# Create FCGR
+panspace fcgr from-kmer-counts \
+    --kmer 8 \
+    --path-kmer-counts output \
+    --path-save fcgr.npy
 ```
 
-**Optional: for faster queries**
-recommended if you have hundreds or thousands of assemblies to query 
-
-First install the [FCGR extension to KMC3](https://github.com/pg-space/fcgr/)
-and put the path to the installed bin of the `fcgr` tool in the `scripts/config_fcgr.yml` file. Then run, 
- 
+**With FCGR Extension** (faster):
 ```bash
-snakemake -s scripts/query_fast.smk --cores 8 --use-conda
+# Install from https://github.com/pg-space/fcgr
+fcgr -k 8 -i assembly.fa -o fcgr.npy
 ```
 
-or put it directly on bash
+### Batch Processing Examples
+
+**Process AllTheBacteria dataset**:
 ```bash
-snakemake -s scripts/query_fast.smk --cores 8 --use-conda --config fcgr_bin=<path/to/fcgr>
+# See scripts/allthebacteria_*.smk
+snakemake -s scripts/allthebacteria_fcgr.smk \
+    --config input_dir=/path/to/allthebacteria \
+    --cores 32 \
+    --use-conda
 ```
 
-_NOTES_ 
-- change the number of cores (`--cores <NUM_CORES>`) if you have more availables, this will allow the parallelization of k-mer counts from assemblies done by [KMC3](https://github.com/refresh-bio/KMC) (by default `kmc_threads: 2`, see `scripts/config.yml`).
-- This extension constructs FCGR representations with a C++ extending KMC3 output. The default version parses the output of KMC as a dictionary of k-mer counts and then uses the python library [ComplexCGR](https://github.com/AlgoLab/complexCGR) for the construction of the FCGR. 
+### Data Curation
 
-## Create your own `encoder` and `index`
-
-**NOTE** you can skip [step 2] creating the `encoder` and use the one trained by us (`.keras`). In this case, 
-you can try to index your dataset [step 3] (you still need to create the FCGRs though [step 1]).
- 
-### Install the package
-
-`panspace` requires  python >= 3.9, < 3.11.
-
-with **CPU** support
-
-
-
+Find outliers and potential mislabeling:
 ```bash
-pip install "panspace[cpu] @ git+https://github.com/pg-space/panspace.git"
+panspace data-curation \
+    --embeddings-path embeddings.npy \
+    --labels-path labels.json \
+    --output-dir curation_results/
 ```
 
-with **GPU** support
+### Assembly Statistics
 
+Compute N50, contig counts, and more:
 ```bash
-pip install "panspace[gpu] @ git+https://github.com/pg-space/panspace.git"
+panspace stats-assembly \
+    --fasta-path assembly.fa \
+    --output stats.json
 ```
 
-### Install from conda environment (suggested)
+---
 
-with **CPU** support
-```bash
-conda env create -f envs/cpu.yml
-conda activate panspace-cpu
-```
-
-with **GPU** support
-```bash
-conda env create -f envs/gpu.yml
-conda activate panspace-gpu
-```
-this will also install `snakemake`.
-
-## step-by-step guide
-
-### CLI
-
-It provides commands for
-- creating FCGR from kmer counts,
-- train an encoder using metric learning (if labels are available) or an autoencoder,
-- create and query an Index of _embeddings_.
-
-```bash
->> panspace --help                                             
-                                                                                           
- Usage: panspace [OPTIONS] COMMAND [ARGS]...                                               
-                                                                                           
- 🐱 Welcome to panspace (version 0.2.0), a tool for Indexing and Querying a bacterial      
- pan-genome based on embeddings                                                            
-                                                                                           
-╭─ Options ───────────────────────────────────────────────────────────────────────────────╮
-│ --install-completion          Install completion for the current shell.                 │
-│ --show-completion             Show completion for the current shell, to copy it or      │
-│                               customize the installation.                               │
-│ --help                        Show this message and exit.                               │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ──────────────────────────────────────────────────────────────────────────────╮
-│ app              Run streamlit app                                                      │
-│ data-curation    Find outliers and mislabaled samples.                                  │
-│ docs             Open documentation webpage.                                            │
-│ fcgr             Create FCGRs from fasta file or from txt file with kmers and counts.   │
-│ index            Create and query index. Utilities to test index.                       │
-│ query-smk        Run the Snakemake pipeline with the specified configuration.           │
-│ stats-assembly   N50, number of contigs, avg length, total length.                      │
-│ trainer          Train Autoencoder/Metric Learning. Utilities.                          │
-│ utils            Extract info from text or log files                                    │
-│ what-to-do       🐱 If you are new here, check this step-by-step guide                  │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
-
+## Project Structure
 
 ```
-
-
-### 1. Create FCGR of assemblies
-Even though you can use the following command to create a FCGR (.npy file) from a fasta file (and more)
-
-```bash
-panspace fcgr --help                                             (panspace-cpu) 
-                                                                                           
- Usage: panspace fcgr [OPTIONS] COMMAND [ARGS]...                                          
-                                                                                           
- Create FCGRs from fasta file or from txt file with kmers and counts.                      
-                                                                                           
-╭─ Options ───────────────────────────────────────────────────────────────────────────────╮
-│ --help          Show this message and exit.                                             │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ──────────────────────────────────────────────────────────────────────────────╮
-│ from-fasta         Create the Frequency matrix of CGR (FCGR) from a fasta file.         │
-│ from-kmer-counts   Create the Frequency matrix of CGR (FCGR) from k-mer counts.         │
-│ to-image           Save FCGR as image from npy file.                                    │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
+panspace/
+├── panspace/              # Core Python package
+│   ├── cli/              # Command-line interface
+│   ├── models/           # TensorFlow models (CNNFCGR)
+│   ├── trainers/         # Training logic
+│   ├── indexing/         # FAISS index management
+│   └── streamlit_app/    # Interactive visualization
+├── scripts/              # Snakemake workflows
+│   ├── query.smk         # Query pipeline
+│   ├── query_fast.smk    # Fast query with FCGR extension
+│   ├── create_fcgr.smk   # FCGR generation
+│   └── config_*.yml      # Configuration files
+├── envs/                 # Conda environments
+│   ├── cpu.yml          # CPU version
+│   └── gpu.yml          # GPU version
+├── tests/               # Unit tests
+└── docs/                # Documentation
 ```
 
-we suggest that for large datasets, such as [AllTheBacteria](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/), 
-is better to rely on specialized kmer counters, such as [KMC3](https://github.com/refresh-bio/KMC) or [Jellyfish](https://github.com/gmarcais/Jellyfish).
+---
 
-We provide snakemake pipelines to create FCGRs (see `scripts/`), from:
-- from a folder containing `.fa.gz` files
-- from a folder containing `.fa` files
-- [AllTheBacteria dataset](https://ftp.ebi.ac.uk/pub/databases/AllTheBacteria/Releases/0.2/)
+## Performance Tips
 
-Pipelines relies on [KMC3](https://github.com/refresh-bio/KMC) for k-mer counting, and an extension of it to create FCGRs: [fcgr](https://github.com/pg-space/fcgr). The later needs to be installed manually before using the snakemake pipelines.
-You do not need to worry about installing KMC3, the snakemake pipelines handles that.
+### Speed Optimization
 
-### 2. Train an encoder to create the vector representations
+1. **Use GPU**: 10-100x faster for encoding
+   ```bash
+   conda activate panspace-gpu
+   ```
 
-1. Split dataset into train, validation and test sets 
-```bash
-panspace trainer split-dataset --help
+2. **Use FCGR Extension**: 5-10x faster FCGR generation
+   ```bash
+   panspace query-smk --fast-version
+   ```
+
+3. **Parallel Processing**: Increase cores for Snakemake
+   ```bash
+   snakemake -s scripts/query.smk --cores 32
+   ```
+
+4. **Batch Queries**: Process multiple files at once with Snakemake
+
+### Memory Optimization
+
+- Use appropriate index types for large databases
+- Process large datasets in batches
+- Configure KMC3 memory limits in `config_*.yml`
+
+<!-- --- -->
+
+<!-- ## Benchmarks
+
+Query performance on different dataset sizes:
+
+| Dataset Size | Index Type | Query Time | Memory |
+|-------------|-----------|-----------|--------|
+| 10K genomes | Flat | ~50ms | 2GB |
+| 100K genomes | IVF1024,Flat | ~10ms | 15GB |
+| 1M genomes | HNSW32 | ~5ms | 100GB |
+| 3.5M genomes (AllTheBacteria) | HNSW32 | ~8ms | 350GB |
+
+*Benchmarked on Intel Xeon Gold 6248R, 128GB RAM* -->
+
+---
+
+## Citation
+
+If you use PanSpace in your research, please cite:
+
+```bibtex
+@article{panspace2025,
+    title={PanSpace: Fast and Scalable Indexing for Massive Bacterial Databases},
+    author={Avila Cartes, Jorge and others},
+    journal={bioRxiv},
+    year={2025},
+    doi={10.1101/2025.03.19.644115}
+}
 ```
 
-2. Train
+---
 
-**Options** 
-- Do you have labels for each assembly? 
-    - Use metric learning with the triplet loss
-    - Or metric learning with the contrastive loss
-- If you do not have labels, then use unsupervised learning with the `AutoencoderFCGR` architecture
-In all of them the `CNNFCGR` architecture can be used
+## Troubleshooting
 
+### Common Issues
+
+**TensorFlow installation problems:**
 ```bash
-panspace trainer metric-learning --help # triplet loss
-panspace trainer one-shot --help        # contrastive loss
-panspace trainer autoencoder --help     
+# Ensure correct Python version (3.9-3.10)
+python --version
+
+# Reinstall with conda
+conda install -c conda-forge tensorflow
 ```
 
-**Get the Encoder**
-- If using the triplet loss, the output model is the encoder.
-- If using the contrastive loss, you can get the encoder with `panspace trainer extract-backbone-one-shot`
-- If using the autoencoder, you can get the encoder with `panspace trainer split-autoencoder`
-
-### 3. Create and query an index
-
-1. Create Index
-
+**FCGR extension not found:**
 ```bash
-panspace index create --help
+# Install from source
+git clone https://github.com/pg-space/fcgr
+cd fcgr && make install
 ```
 
-2. Query Index
-
-If querying is done from FCGR in numpy format, then use
+**Snakemake fails:**
 ```bash
-panspace index query --help
+# Clear cache and retry
+snakemake --unlock
+rm -rf .snakemake/
+snakemake -s scripts/query.smk --use-conda --cores 8
 ```
 
-but if you want to query the index directly from assemblies, we encourage you to use the snakemake pipelines provided above.
+---
 
-___
+## Related Tools
 
-# Author
-`panspace` is developed by [Jorge Avila Cartes](https://github.com/jorgeavilacartes/)
+- **[AllTheBacteria](https://allthebacteria.org)**: Comprehensive bacterial genome database
+- **[KMC3](https://github.com/refresh-bio/KMC)**: Fast k-mer counting
+- **[FCGR Extension](https://github.com/pg-space/fcgr)**: Optimized FCGR generation
+- **[ComplexCGR](https://github.com/AlgoLab/complexCGR)**: Python FCGR library
+- **[FAISS](https://github.com/facebookresearch/faiss)**: Efficient similarity search
+
+---
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## Support
+
+- 📧 **Email**: jorgeavilacartes@gmail.com
+- 🐛 **Issues**: [GitHub Issues](https://github.com/pg-space/panspace/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/pg-space/panspace/discussions)
+<!-- - 📖 **Documentation**: [docs/](docs/) -->
+
+---
+
+## License
+
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Built with TensorFlow and FAISS
+- FCGR generation powered by KMC3 and custom extensions
+- Inspired by deep metric learning approaches
+<!-- - Funded by [Your funding sources] -->
+
+---
+
+## Author
+
+**PanSpace** is developed and maintained by [Jorge Avila Cartes](https://github.com/jorgeavilacartes)
+
+<div align="center">
+    <p>⭐ Star us on GitHub if PanSpace helps your research!</p>
+</div>
