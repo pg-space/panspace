@@ -221,7 +221,8 @@ panspace query-smk \
     --path-encoder "checkpoints/weights-CNNFCGR_Levels.keras" \
     --path-index "index/panspace.index" \
     --outdir "results/" \
-    --cores 8
+    --cores 8 \
+    --kmc-threads 2
 ```
 
 **With fast FCGR generation** (requires [FCGR extension](https://github.com/pg-space/fcgr)):
@@ -231,7 +232,9 @@ panspace query-smk \
     --path-encoder "checkpoints/weights-CNNFCGR_Levels.keras" \
     --path-index "index/panspace.index" \
     --fast-version \
-    --outdir "results/"
+    --fcgr-bin <path/bin/fcgr> \
+    --outdir "results/" \
+    [--gpu]
 ```
 
 **Using Snakemake directly**:
