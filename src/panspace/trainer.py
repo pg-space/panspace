@@ -466,8 +466,8 @@ def split_train_val_test(
         if len(paths_specie) > min_labels_test:
             random.shuffle(paths_specie)
             N = len(paths_specie)
-            pos_train = int(0.8*N)
-            pos_test = int(0.9*N)
+            pos_train = int(train_size*N)
+            pos_test = int((1-train_size)/2*N)
             paths_train = paths_specie[:pos_train]
             paths_validation = paths_specie[pos_train:pos_test]
             paths_test = paths_specie[pos_test:]
