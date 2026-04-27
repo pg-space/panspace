@@ -11,7 +11,7 @@
 BATCH_DIR="${1:-batches}"
 CORES="${2:-8}"
 SMK="scripts/fcgr_plain_fna.gz_GTDB.smk"
-CONFIG="scripts/config_fcgr.yml"
+CONFIG="scripts/config_gtdb.yml"
 
 echo "Batch dir : $BATCH_DIR"
 echo "Cores     : $CORES"
