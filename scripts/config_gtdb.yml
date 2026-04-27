@@ -1,13 +1,10 @@
-outdir: "/path/to/output"
+outdir: "/data/proj/panspace-paper/GTDB/data"
 batch_file: "batches/batch_0000.txt"
 kmc_threads: 2
-bin_fcgr_mask: "/path/to/fcgr"
+bin_fcgr_mask: "/data/proj/panspace-paper/fcgr/fcgr"
 
 # One mask per line, all of the same length and same number of 1s.
 # The effective k-mer size equals the count of 1s in each mask.
 # Example below gives 8-mers from spaced seeds of length 15.
 mask:
-  - "111100000001111"
-  - "111100011000011"
-  - "111100011010001"
-  - "111000101010101"
+  - "11111111"
