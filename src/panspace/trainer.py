@@ -3,6 +3,7 @@ import typer
 from typing_extensions import Annotated
 from typing import Optional
 from pathlib import Path
+from collections import Counter
 
 import json
 import logging 
@@ -12,6 +13,7 @@ logger.setLevel(logging.INFO)
 from rich.progress import track
 from rich import print 
 from rich.console import Console
+from rich.table import Table
 
 # for typer
 # from .dataclasses_cli import 
@@ -433,65 +435,67 @@ def split_dataset(
     
     print("finished")
 
-@app.command("split-dataset", help="split data intro train, validation and test sets")
+@app.command("split-dataset", help="Split a TAB-separated file (path, label) into train, validation and test sets.")
 def split_train_val_test(
-        file_paths_label: Annotated[Path, typer.Option("--file-paths-labels","-f", 
-                                                       help="tab separeted txt file with first column the npy path and second column the label")],
+        file_paths_label: Annotated[Path, typer.Option("--file-paths-labels","-f",
+                                                       help="TAB-separated txt file: first column is the path, second column is the label")],
         outdir: Annotated[Path, typer.Option("--outdir","-o", mode="w", help="directory to save split results.")],
-        train_size: Annotated[float, typer.Option(min=0.01, max=0.99, 
-                                                  help="""percentage of data to be used for training. 
-                                                  Validation and test will be of size (1-train_size)/2 each.""")] = 0.8,
-        seed: Annotated[int, typer.Option("--seed", "-s", 
-                                                    help= "to reproduce split of dataset")] = 42,
-        min_labels_test: Annotated[int, typer.Option("--min-labels", 
-                                                     help="""minimum number of labels of a species to be considered in the test set. 
-                                                     If the number of species in the input dataset is less than this, then all data will be used in the training set only""")] = 10,
+        train_size: Annotated[float, typer.Option(min=0.01, max=0.99,
+                                                  help="fraction of data for training; validation and test each get (1-train_size)/2")] = 0.8,
+        seed: Annotated[int, typer.Option("--seed", "-s", help="random seed to reproduce the split")] = 42,
+        min_samples_split: Annotated[int, typer.Option("--min-samples-split",
+                                                     help="species with at least this many samples are split proportionally; "
+                                                          "species with fewer get 1 sample in test, 1 in validation, and the rest in training")] = 10,
         ):
-
+    """
+    Species with >= min_samples_split samples are split with the given proportions (train / val / test).
+    Species with fewer samples: 1 goes to test, 1 goes to validation, all remaining go to training.
+    """
     import random
     import pandas as pd
     random.seed(seed)
     outdir = Path(outdir)
     outdir.mkdir(exist_ok=True, parents=True)
 
-    df = pd.read_csv(file_paths_label, sep="\t", header=None, names=["path","label"])
-    unique_labels = df["label"].unique()  
-    unique_labels.sort()
+    df = pd.read_csv(file_paths_label, sep="\t", header=None, names=["path", "label"])
+    unique_labels = sorted(df["label"].unique())
 
-    for specie in track(unique_labels, description=":dna: split dataset by species"):
+    val_size = (1 - train_size) / 2
 
-        paths_specie = df.query(f"label == '{specie}'")["path"].tolist()
+    all_train, all_val, all_test = [], [], []
+
+    for specie in track(unique_labels, description=":dna: splitting by species"):
+        paths_specie = df[df["label"] == specie]["path"].tolist()
         paths_specie.sort()
-        
-        if len(paths_specie) > min_labels_test:
-            random.shuffle(paths_specie)
-            N = len(paths_specie)
-            pos_train = int(train_size*N)
-            pos_test = int((1-train_size)/2*N)
-            paths_train = paths_specie[:pos_train]
-            paths_validation = paths_specie[pos_train:pos_test]
-            paths_test = paths_specie[pos_test:]
-            # break
+        random.shuffle(paths_specie)
+        N = len(paths_specie)
 
-            with open(outdir.joinpath("training_list.txt"),"a") as fp:
-                for path in paths_train:
-                    fp.write(f"{path}\t{specie}\n")
-
-            with open(outdir.joinpath("validation_list.txt"),"a") as fp:
-                for path in paths_validation:
-                    fp.write(f"{path}\t{specie}\n")
-
-            with open(outdir.joinpath("test_list.txt"),"a") as fp:
-                for path in paths_test:
-                    fp.write(f"{path}\t{specie}\n")
-
-        # species with less than min_labels_test FCGRs will only be used for training
+        if N >= min_samples_split:
+            n_train = round(train_size * N)
+            n_val = max(1, round(val_size * N))
+            all_train.extend((p, specie) for p in paths_specie[:n_train])
+            all_val.extend((p, specie) for p in paths_specie[n_train:n_train + n_val])
+            all_test.extend((p, specie) for p in paths_specie[n_train + n_val:])
         else:
-            with open(outdir.joinpath("training_list.txt"),"a") as fp:
-                for path in paths_specie:
-                    fp.write(f"{path}\t{specie}\n")
+            # small species: 1 → test, 1 → val, rest → train
+            all_test.extend((p, specie) for p in paths_specie[:1])
+            all_val.extend((p, specie) for p in paths_specie[1:2])
+            all_train.extend((p, specie) for p in paths_specie[2:])
+
+    for filename, data in [
+        ("training_list.txt", all_train),
+        ("validation_list.txt", all_val),
+        ("test_list.txt", all_test),
+    ]:
+        with open(outdir.joinpath(filename), "w") as fp:
+            for path, label in data:
+                fp.write(f"{path}\t{label}\n")
+        console.print(f"  [cyan]{filename}[/cyan]: {len(data):,} samples")
 
     print(f":dna: saved results in {outdir}")
+
+
+
 
 @app.command("metric-learning", help="Create embedding using labels in training with the triplet loss")
 def train_metric_learning(
@@ -970,3 +974,109 @@ def show_architecture(
         raise Exception("Model not found")
     
     print(model.summary())
+
+
+@app.command("labeled-paths")
+def create_labeled_paths(
+    paths_fcgr: Path = typer.Argument(..., help="File with one FCGR path per line"),
+    samples_labels: Path = typer.Argument(..., help="TSV/TXT file with sample ID and label columns"),
+    output: Path = typer.Argument(..., help="Output file (path TAB label)"),
+):
+    """Create a TAB separated file with FCGR paths and corresponding labels by matching sample IDs."""
+    # Build sample -> label lookup
+    sample2label: dict[str, str] = {}
+    with samples_labels.open() as f:
+        for line in f:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 2:
+                sample2label[parts[0]] = parts[1]
+
+    console.print(f"Loaded [bold]{len(sample2label):,}[/bold] sample-label pairs")
+
+    paths = paths_fcgr.read_text().splitlines()
+    console.print(f"Processing [bold]{len(paths):,}[/bold] FCGR paths")
+
+    matched = skipped = 0
+    with output.open("w") as out:
+        for path in track(paths, description="Matching…"):
+            sample_id = Path(path).stem
+            label = sample2label.get(sample_id)
+            if label is None:
+                skipped += 1
+                continue
+            out.write(f"{path}\t{label}\n")
+            matched += 1
+
+    console.print(f"[green]Matched:[/green] {matched:,}  [yellow]Skipped:[/yellow] {skipped:,}")
+    console.print(f"Output written to [bold]{output}[/bold]")
+
+
+@app.command("summary")
+def summary(
+    labeled_paths: Path = typer.Argument(..., help="TSV/TXT file with FCGR path and label columns"),
+    output: Path = typer.Argument(..., help="Output TSV file with label and count columns"),
+):
+    """Summarise sample counts per label and save results. The output of labeled-paths command"""
+    counts: Counter = Counter()
+    with labeled_paths.open() as f:
+        for line in track(f, description="Counting…"):
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 2:
+                counts[parts[1]] += 1
+
+    table = Table(title="Samples per label", show_lines=False)
+    table.add_column("Label", style="cyan")
+    table.add_column("Count", justify="right", style="bold")
+
+    output.parent.mkdir(exist_ok=True, parents=True)
+    with output.open("w") as out:
+        out.write("label\tcount\n")
+        for label, count in sorted(counts.items(), key=lambda x: -x[1]):
+            table.add_row(label, f"{count:,}")
+            out.write(f"{label}\t{count}\n")
+
+    console.print(table)
+    console.print(
+        f"[bold]{len(counts):,}[/bold] labels  |  "
+        f"[bold]{sum(counts.values()):,}[/bold] total samples"
+    )
+    console.print(f"Summary written to [bold]{output}[/bold]")
+
+@app.command("filter-samples")
+def filter_samples(
+    metadata: Path = typer.Argument(..., help="hq_sample2species2file2newspecies.tsv"),
+    label_col: str = typer.Argument(..., help="Label column to use: 'species' or 'new_species'"),
+    output: Path = typer.Argument(..., help="Output TSV file with sample and label columns"),
+    min_samples: int = typer.Option(3, "--min-samples", "-m", help="Minimum number of samples per label"),
+):
+    """Filter samples from the metadata TSV keeping only labels with enough samples."""
+    import csv
+
+    counts: Counter = Counter()
+    rows: list[tuple[str, str]] = []
+
+    with metadata.open() as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        if label_col not in (reader.fieldnames or []):
+            console.print(f"[red]Column '{label_col}' not found.[/red] Available: {reader.fieldnames}")
+            raise typer.Exit(1)
+        for row in track(reader, description="Reading…"):
+            label = row[label_col]
+            counts[label] += 1
+            rows.append((row["sample"], label))
+
+    valid = {label for label, count in counts.items() if count >= min_samples}
+
+    console.print(
+        f"Labels with >= [bold]{min_samples}[/bold] samples: "
+        f"[green]{len(valid):,}[/green] / {len(counts):,}"
+    )
+
+    written = 0
+    with output.open("w") as out:
+        for sample, label in rows:
+            if label in valid:
+                out.write(f"{sample}\t{label}\n")
+                written += 1
+
+    console.print(f"[green]{written:,}[/green] samples written to [bold]{output}[/bold]")
