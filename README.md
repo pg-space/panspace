@@ -327,9 +327,9 @@ Choose a training strategy based on your data:
 
 ##### Option A: Metric Learning with Labels (Recommended)
 
-**Triplet Loss** (best for large datasets):
+**Triplet Loss**:
 ```bash
-panspace trainer metric-learning \
+panspace trainer triplet \
     --train-dir splits/train/ \
     --val-dir splits/val/ \
     --kmer 8 \
@@ -340,23 +340,27 @@ panspace trainer metric-learning \
     --output-dir models/triplet/
 ```
 
-**Contrastive Loss** (one-shot learning):
+__NOTE__ Encoder is the trained model itself.
+
+**Contrastive Loss** (siamese networks):
 ```bash
-panspace trainer one-shot \
+panspace trainer siamese \
     --train-dir splits/train/ \
     --val-dir splits/val/ \
     --kmer 8 \
     --embedding-dim 256 \
     --margin 1.0 \
     --epochs 100 \
-    --output-dir models/contrastive/
+    --output-dir models/siamese/
 ```
 
-Extract the encoder:
+__NOTE__ Encoder need to be extracted from the siamese network created during training.
+
+Extract the Encoder:
 ```bash
-panspace trainer extract-backbone-one-shot \
-    --model-path models/contrastive/model.keras \
-    --output-path models/contrastive/encoder.keras
+panspace trainer extract-backbone-siamese \
+    --model-path models/siamese/model.keras \
+    --output-path models/siamese/encoder.keras
 ```
 
 ##### Option B: Unsupervised Learning (No Labels)
@@ -393,11 +397,11 @@ panspace index create \
     --output-index index/panspace.index \
     --output-metadata index/metadata.json \
 ```
-
+<!-- 
 **Index types:**
-- `Flat`: Exact search, slower but accurate
+- `Flat`: Exact search, slower but accurate (We use this!)
 - `IVF1024,Flat`: Inverted file index, faster with slight approximation
-- `HNSW32`: Hierarchical graph, very fast
+- `HNSW32`: Hierarchical graph, very fast -->
 
 ---
 
@@ -406,7 +410,7 @@ panspace index create \
 **From FCGR files**:
 ```bash
 panspace index query \
-    --query-fcgr query.npy \
+    --query-fcgr <folder/with/fcgr.npy or path-fcgr.txt> \
     --encoder-path models/triplet/encoder.keras \
     --index-path index/panspace.index \
     --metadata-path index/metadata.json \
@@ -464,45 +468,47 @@ panspace fcgr to-image \
 ### Training Commands
 
 ```bash
-# Split dataset
+# Split dataset into train / validation / test
+# Species with >= --min-samples-split get a proportional split (train_size : val : test = 80:10:10 by default).
+# Species with fewer samples get 1 sample in test, 1 in validation, and the rest in training.
 panspace trainer split-dataset \
-    --data-dir <dir> \
-    --output-dir <output> \
-    [--train-ratio 0.7] [--val-ratio 0.15]
+    --file-paths-labels <paths_labels.txt> \
+    --outdir <output_dir/> \
+    [--train-size 0.8] \
+    [--min-samples-split 10] \
+    [--seed 42]
 
-# Metric learning (Triplet loss)
-panspace trainer metric-learning \
-    --train-dir <train/> \
-    --val-dir <val/> \
+# Triplet loss (metric learning)
+panspace trainer triplet \
+    --training-list <train.txt> \
+    --validation-list <val.txt> \
     --kmer <k> \
-    --embedding-dim <dim> \
-    [--batch-size 32] [--epochs 100]
+    [--latent-dim 256] [--batch-size 256] [--epochs 100] [--margin 1.0]
 
-# One-shot learning (Contrastive loss)
-panspace trainer one-shot \
-    --train-dir <train/> \
-    --val-dir <val/> \
+# Siamese network (contrastive loss)
+panspace trainer siamese \
+    --training-list <train.txt> \
+    --validation-list <val.txt> \
     --kmer <k> \
-    --embedding-dim <dim> \
-    [--margin 1.0] [--epochs 100]
+    [--latent-dim 128] [--batch-size 256] [--epochs 2] [--margin 1.0]
 
 # Autoencoder (Unsupervised)
 panspace trainer autoencoder \
-    --train-dir <train/> \
-    --val-dir <val/> \
+    --outdir <output_dir/> \
+    --training-list <train.txt> \
     --kmer <k> \
-    --embedding-dim <dim> \
-    [--epochs 100]
+    [--latent-dim 100] [--batch-size 64] [--epochs 50]
 
-# Extract encoder from trained models
-panspace trainer extract-backbone-one-shot \
-    --model-path <model.keras> \
-    --output-path <encoder.keras>
+# Extract backbone from siamese network
+panspace trainer extract-backbone-siamese \
+    --path-model <siamese.keras> \
+    --path-save <encoder.keras>
 
+# Split autoencoder into encoder and decoder
 panspace trainer split-autoencoder \
-    --model-path <autoencoder.keras> \
-    --output-encoder <encoder.keras> \
-    --output-decoder <decoder.keras>
+    --path-checkpoint <autoencoder.keras> \
+    --dirsave <output_dir/> \
+    [--encoder-only]
 ```
 
 ### Index Commands
@@ -510,25 +516,22 @@ panspace trainer split-autoencoder \
 ```bash
 # Create index
 panspace index create \
-    --data-dir <fcgr_data/> \
-    --encoder-path <encoder.keras> \
-    --output-index <panspace.index> \
-    --output-metadata <metadata.json> \
+    --files-to-index <paths_labels.txt> \
+    --kmer-size <k> \
+    --col-labels <col> \
+    --path-encoder <encoder.keras> \
+    --path-index <panspace.index> \
+    --latent-dim <dim> \
+    [--batch-size 32]
 
 # Query index
 panspace index query \
-    --query-fcgr <query.npy> \
-    --encoder-path <encoder.keras> \
-    --index-path <panspace.index> \
-    --metadata-path <metadata.json> \
-    [--n-neighbors 10]
-
-# Test index performance
-panspace index test \
-    --test-dir <test/> \
-    --encoder-path <encoder.keras> \
-    --index-path <panspace.index> \
-    --metadata-path <metadata.json>
+    --path-fcgr <folder/with/fcgr.npy or paths-to-fcgr.txt> \
+    --kmer-size <k> \
+    --path-encoder <encoder.keras> \
+    --path-index <panspace.index> \
+    --outdir <results/> \
+    [--n-neighbors 11] [--threshold-outlier <float>]
 ```
 
 ### Query Pipeline

@@ -24,7 +24,7 @@ def create_index(
         latent_dim: Annotated[int, typer.Option("--latent-dim","-d", help="number of dimension in the embeddings space")],
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 32,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
-        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 80,
         ) -> None:
     import json
     import faiss
@@ -148,7 +148,7 @@ def query_index(
         batch_size: Annotated[int, typer.Option("--batch-size","-b", help="batch size for inference with encoder")] = 16,
         threshold_outlier: Annotated[float, typer.Option("--threshold-outlier","-to", help="Average distance threshold to flag outlier")] = None,
         preprocessing: Annotated[Preprocessing, typer.Option(help="preprocessing")]=Preprocessing.ScaleZeroOne.value,
-        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 80,
         ) -> None:
     import json
 

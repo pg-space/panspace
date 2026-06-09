@@ -497,8 +497,8 @@ def split_train_val_test(
 
 
 
-@app.command("metric-learning", help="Create embedding using labels in training with the triplet loss")
-def train_metric_learning(
+@app.command("triplet", help="Create embedding using labels in training with the triplet loss")
+def train_triplet(
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         validation_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         kmer: Annotated[int, typer.Option(min=6, help="kmer used to create the FCGR that will be used to train the model.")],
@@ -520,7 +520,7 @@ def train_metric_learning(
         path_weights: Annotated[Path, typer.Option(help="pretrained weights/model, eg: path/to/weights.keras")] = None,
         factor_batches: Annotated[int, typer.Option(help="Number of batches per epoch will be multiplied by this number")] = 1,
         weighted_loader: Annotated[bool, typer.Option("--weighted-loader", "-wl",help="If set, batches will be created weightening classes by representatitity, otherwise, random selection will be used.")]=False,
-        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 90,
+        percentile_clip: Annotated[int, typer.Option("--percentile-clip","-pclip", help="If clip is used in the preprocessing, clip higher values to percentile.", min=0, max=100)] = 80,
         ) -> None:
     
     """
@@ -723,8 +723,8 @@ def train_metric_learning(
     )
 
 
-@app.command("one-shot", help="train one-shot model with contrastive loss")
-def train_contrastive_model(
+@app.command("siamese", help="train one-shot model with contrastive loss")
+def train_siamese(
         training_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         validation_list: Annotated[Path, typer.Option(help=".txt file with paths to FCGR in the first column and labels in the second column (tab separated)")],
         kmer: Annotated[int, typer.Option(min=6, help="kmer used to create the FCGR that will be used to train the model.")],
@@ -927,8 +927,8 @@ def train_contrastive_model(
         workers=8, use_multiprocessing=True, max_queue_size=256
     )
 
-@app.command("extract-backbone-one-shot", help="get embedding model from siamese network trained with contrastive loss")
-def extract_backbone_one_shot_model(
+@app.command("extract-backbone-siamese", help="get embedding model from siamese network trained with contrastive loss")
+def extract_backbone_siamese(
             path_model: Annotated[Path, typer.Option(help="trained siamese network with contrastive loss, eg: path/to/checkpoint.keras")],
             path_save: Annotated[Path, typer.Option(help="path to save backbone model to output embeddings, eg: path/to/model.keras")]
             ):
