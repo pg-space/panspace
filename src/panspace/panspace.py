@@ -79,6 +79,39 @@ def info_from_logs(path_log) -> None:
         loginfo(path_log)
     )
 
+@app.command("utils-summary", help="Summarize /usr/bin/time -v info across all .log files in a directory")
+def summary_from_logs(
+    dir_logs: Annotated[Path, typer.Argument(help="directory with .log files")],
+    pattern: Annotated[str, typer.Option("--pattern", "-p", help="glob pattern to match log files")] = "*.log",
+) -> None:
+    from .utils import LogInfo
+    from rich.table import Table
+
+    loginfo = LogInfo()
+    summary = loginfo.summarize_directory(dir_logs, pattern)
+
+    table = Table(title=f"Summary of {pattern} files in {dir_logs}")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Count", justify="right")
+    table.add_column("Mean", justify="right")
+    table.add_column("Std", justify="right")
+    table.add_column("Min", justify="right")
+    table.add_column("Max", justify="right")
+    table.add_column("Sum", justify="right")
+
+    for feat, stats in summary.items():
+        table.add_row(
+            feat,
+            str(stats["count"]),
+            f"{stats['mean']:.3f}",
+            f"{stats['std']:.3f}",
+            f"{stats['min']:.3f}",
+            f"{stats['max']:.3f}",
+            f"{stats['sum']:.3f}",
+        )
+
+    console.print(table)
+
 @app.command("app",help="Run streamlit app")
 def run_streamlit() -> None:
     console.rule("[bold blue]Running Streamlit Application")

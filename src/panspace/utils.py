@@ -40,6 +40,8 @@ class Preprocessing(str,Enum):
 
 
 import re
+import statistics
+from pathlib import Path
 from datetime import datetime
 from collections import namedtuple,defaultdict
 
@@ -94,4 +96,24 @@ class LogInfo:
             usrbintime[feat] = float(value)
 
         return usrbintime
-    
+
+    def summarize_directory(self, dir_logs: str, pattern: str = "*.log") -> dict:
+        "aggregate usrbintime info (mean, std, min, max, sum) across all .log files in a directory"
+        per_feat = defaultdict(list)
+
+        for path_log in sorted(Path(dir_logs).glob(pattern)):
+            info = self(str(path_log))
+            for feat, value in info.items():
+                per_feat[feat].append(value)
+
+        summary = dict()
+        for feat, values in per_feat.items():
+            summary[feat] = {
+                "count": len(values),
+                "mean": statistics.mean(values),
+                "std": statistics.stdev(values) if len(values) > 1 else 0.0,
+                "min": min(values),
+                "max": max(values),
+                "sum": sum(values),
+            }
+        return summary
