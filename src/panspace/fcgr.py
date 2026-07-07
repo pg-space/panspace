@@ -81,6 +81,59 @@ def create_fcgr_fasta(path_fasta: Annotated[Path, typer.Option("--path-fasta","-
     Path(path_save).parent.mkdir(exist_ok=True, parents=True)
     np.save(path_save, m)
 
+
+def jaccard_fcgr(fcgr1, fcgr2) -> float:
+    "Jaccard similarity between the k-mer content of two FCGRs (each cell is a k-mer, present if count > 0)"
+    import numpy as np
+
+    assert fcgr1.shape == fcgr2.shape, "FCGRs must come from the same k-mer size to be compared"
+
+    present1 = fcgr1 > 0
+    present2 = fcgr2 > 0
+    union = np.logical_or(present1, present2).sum()
+    if union == 0:
+        return 0.0
+    intersection = np.logical_and(present1, present2).sum()
+    return float(intersection) / float(union)
+
+
+def ani_naive_fcgr(fcgr1, fcgr2) -> float:
+    "Naive ANI estimate between two genomes: the Jaccard similarity of their FCGR k-mer content, with no evolutionary-model correction"
+    return jaccard_fcgr(fcgr1, fcgr2)
+
+
+def ani_mash_fcgr(fcgr1, fcgr2, kmer: int) -> float:
+    "ANI estimate via the Mash equation: ANI = 1 - D, with Mash distance D = -(1/k) * ln(2J/(1+J))"
+    import numpy as np
+
+    jaccard = jaccard_fcgr(fcgr1, fcgr2)
+    if jaccard == 0:
+        # no shared k-mers: ln(0) is undefined, D diverges -> floor ANI at 0
+        return 0.0
+    return 1 + (1 / kmer) * np.log(2 * jaccard / (1 + jaccard))
+
+
+@app.command("ani", help="Compute Average Nucleotide Identity (ANI) between two genomes from their FCGR (.npy files).")
+def ani_from_fcgr(
+        path_fcgr1: Annotated[Path, typer.Option("--path-fcgr1", "-f1", mode="r", help="path to first genome's FCGR in .npy format.")],
+        path_fcgr2: Annotated[Path, typer.Option("--path-fcgr2", "-f2", mode="r", help="path to second genome's FCGR in .npy format.")],
+        kmer: Annotated[int, typer.Option("--kmer", "-k", min=1, help="k-mer size used to build both FCGRs")] = 6,
+    ) -> None:
+
+    import numpy as np
+
+    fcgr1 = np.load(path_fcgr1)
+    fcgr2 = np.load(path_fcgr2)
+
+    jaccard = jaccard_fcgr(fcgr1, fcgr2)
+    ani_naive = ani_naive_fcgr(fcgr1, fcgr2)
+    ani_mash = ani_mash_fcgr(fcgr1, fcgr2, kmer)
+
+    console.print(f"Jaccard similarity: {jaccard:.6f}")
+    console.print(f"ANI (naive, = Jaccard): {ani_naive:.6f}")
+    console.print(f"ANI (Mash equation): {ani_mash:.6f}")
+
+
 # @app.command("plot-outliers", help="Create image in jpg format for a list of FCGR")
 def plot_outliers(path_outliers:  Annotated[Path, typer.Option("--path-outliers","-po",mode="r", help="file with list of outliers .csv")],
             # column_path: Annotated[int, typer.Option("--column-path", "-cp", help="column with path to FCGR in .npy format")] = 1,

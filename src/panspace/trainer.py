@@ -538,7 +538,7 @@ def train_triplet(
     from .dnn.loaders import DataLoaderMetricLearning as DataLoaders
     from .dnn.loaders.generator_batches import generator_balanced_batches
     from .dnn.callbacks import CSVTimeHistory
-    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout, CNNFCGR_Levels
+    from .dnn.models import CNNFCGR, ResNet50, CNNFCGR_Dropout, CNNFCGR_Levels, MLP
 
     # parameters train
     ARCHITECTURE=architecture
@@ -688,7 +688,7 @@ def train_triplet(
                     batch_normalization={batch_normalization},
                     level={convfcgr_level},
                     )""")    
-    elif ARCHITECTURE == "ResNet50":
+    elif ARCHITECTURE in ["ResNet50","MLP"]:
         model=eval(f"""{ARCHITECTURE}(latent_dim = {latent_dim}, 
                     hidden_activation='{hidden_activation}', 
                     kmer={kmer},

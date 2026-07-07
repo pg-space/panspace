@@ -5,3 +5,4 @@ class ModelMetricLearning(str, Enum):
     CNNFCGR_Dropout="CNNFCGR_Dropout",
     ResNet50="ResNet50",
     CNNFCGR_Levels="CNNFCGR_Levels",
+    MLP="MLP",

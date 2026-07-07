@@ -124,7 +124,7 @@ def run_streamlit() -> None:
     os.system(f"streamlit run {path_app}")
 
 
-@app.command("query-smk")
+# @app.command("query-smk")
 def run_pipeline(
     dir_sequences: Annotated[Path, typer.Option(help="Path to input sequences directory")] = ...,
     path_encoder: Annotated[Path, typer.Option(help="Path to encoder weights (.keras) file")] = ...,
