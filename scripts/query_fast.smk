@@ -51,13 +51,13 @@ rule count_kmers:
     params:
         kmer=KMER_SIZE,
         prefix=pjoin(OUTDIR, "fcgr","{seqid}"),
-    threads:
-        KMC_THREADS,
     conda:
         "envs/kmc.yml"
     log:
         log=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.log"),
         err=OUTDIR.joinpath("logs/count_kmers_kmc-{seqid}.err.log"),
+    threads:
+        KMC_THREADS,
     shell:
         """
         mkdir -p tmp-kmc
@@ -78,6 +78,8 @@ rule list_path_seqid:
     log:
         log=OUTDIR.joinpath("logs/list_path_seqid.log"),
         err=OUTDIR.joinpath("logs/list_path_seqid.err.log"),
+    threads:
+        workflow.cores,
     shell:
         "/usr/bin/time -vo {log.log} ls {params.folder_kmc_output}/*.kmc_suf | while read f; do echo ${{f::-8}} >> {output} ; done 2> {log.err}"
 
@@ -97,6 +99,8 @@ rule fcgr:
     log:
         log=OUTDIR.joinpath("logs/fcgr.log"),
         err=OUTDIR.joinpath("logs/fcgr.err.log"),
+    threads:
+        workflow.cores,
     shell:
         """
         /usr/bin/time -vo {log.log} {params.fcgr_bin} -m {params.mask} -o {params.fcgrdir} {input} 2> {log.err}
@@ -124,6 +128,8 @@ rule query_index:
     log:
         log=OUTDIR.joinpath("logs/query_index.log"),
         err=OUTDIR.joinpath("logs/query_index.err.log"),
+    threads:
+        workflow.cores,
     shell:
         """
         /usr/bin/time -vo {log.log} panspace index query \
