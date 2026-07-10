@@ -253,6 +253,8 @@ def query_index(
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
             return x_clipped
+    else:
+        preprocessing = None
 
     # create dataset to fed Encoder
     index_data = DataLoader(
