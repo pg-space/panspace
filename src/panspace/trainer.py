@@ -578,6 +578,8 @@ def train_triplet(
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
             return x_clipped, y
+    else:
+        preprocessing = lambda x,y: x,y
 
     # ------ data split: training + validation ------
 
@@ -613,8 +615,8 @@ def train_triplet(
     ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
     ds_validation = ds_validation.prefetch(tf.data.AUTOTUNE)
 
-    ds_train.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
-    ds_validation.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
+    ds_train = ds_train.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
+    ds_validation = ds_validation.map(preprocessing, num_parallel_calls=tf.data.AUTOTUNE)
 
     # - Callbacks: actions that are triggered at the end of each epoch
     # checkpoint: save best weights

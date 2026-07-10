@@ -93,6 +93,8 @@ def create_index(
             # Clip values above the 95th percentile
             x_clipped = tf.minimum(x, percentile)
             return x_clipped
+    else:
+        preprocessing = None
         
     # compute embeddings
     index_data = DataLoader(
