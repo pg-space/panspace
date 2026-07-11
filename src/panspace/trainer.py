@@ -559,23 +559,27 @@ def train_triplet(
     elif preprocessing == "clip_scale_zero_one":
 
         def preprocessing(x,y):
-            "clip and rescale [0,1]"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
+            "clip and rescale [0,1], per-sample"
+            # Compute the percentile per sample (axis=None would flatten+sort
+            # the whole batch as a single array: O(N log N) single-threaded
+            # sort over batch_size*H*W elements, and mixes stats across
+            # unrelated samples). Per-sample axis lets the sort run as
+            # batch_size independent, parallelizable rows instead.
+            percentile = tfp.stats.percentile(x, percentile_clip, axis=[1, 2, 3], keepdims=True)
+            # Clip values above the percentile
             x_clipped = tf.minimum(x, percentile)
-            # Rescale the x to [0, 1]
-            max_val = tf.reduce_max(x_clipped)
+            # Rescale each sample to [0, 1]
+            max_val = tf.reduce_max(x_clipped, axis=[1, 2, 3], keepdims=True)
             x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
             return x_rescaled, y
-        
+
     elif preprocessing == "clip":
-        
+
         def preprocessing(x,y):
-            "clip"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
+            "clip, per-sample"
+            # See clip_scale_zero_one: per-sample axis avoids a single
+            # whole-batch sort and matches per-image semantics.
+            percentile = tfp.stats.percentile(x, percentile_clip, axis=[1, 2, 3], keepdims=True)
             x_clipped = tf.minimum(x, percentile)
             return x_clipped, y
     else:
