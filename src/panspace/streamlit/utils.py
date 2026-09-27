@@ -138,40 +138,41 @@ def create_embedding(fcgr_matrix, model, preprocessing="clip", percentile_clip=8
     
     import tensorflow_probability as tfp
 
-    # preprocessing of each FCGR to feed the model 
+    # same input format as in training: float32 tensor of shape (batch, H, W, 1)
+    fcgr_matrix = tf.convert_to_tensor(fcgr_matrix, dtype=tf.float32)
+    if fcgr_matrix.shape.rank == 3:
+        fcgr_matrix = tf.expand_dims(fcgr_matrix, axis=-1)
+
+    # preprocessing of each FCGR to feed the model (same as in trainer.py)
     if preprocessing == "distribution":
         # sum = 1
-        preprocessing = lambda x: x / tf.math.reduce_sum(x)   
-    elif preprocessing == "scale_zero_one": 
+        preprocessing = lambda x: x / tf.math.reduce_sum(x)
+    elif preprocessing == "scale_zero_one":
         # scale [0,1]
         preprocessing = lambda x: x / tf.math.reduce_max(x)
     elif preprocessing == "clip_scale_zero_one":
 
         def preprocessing(x):
-            "clip and rescale [0,1]"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
+            "clip and rescale [0,1], per-sample"
+            # Compute the percentile per sample
+            percentile = tfp.stats.percentile(x, percentile_clip, axis=[1, 2, 3], keepdims=True)
+            # Clip values above the percentile
             x_clipped = tf.minimum(x, percentile)
-            x_clipped = tf.cast(x_clipped, tf.float32)
-
-            # Rescale the x to [0, 1]
-            max_val = tf.reduce_max(x_clipped)
-            max_val = tf.cast(max_val, tf.float32)
-            
+            # Rescale each sample to [0, 1]
+            max_val = tf.reduce_max(x_clipped, axis=[1, 2, 3], keepdims=True)
             x_rescaled = x_clipped / (max_val + 1e-8)  # add epsilon to avoid division by zero
             return x_rescaled
-        
+
     elif preprocessing == "clip":
-        
+
         def preprocessing(x):
-            "clip"
-            # Compute the 90th percentile
-            percentile = tfp.stats.percentile(x, percentile_clip)
-            # Clip values above the 95th percentile
+            "clip, per-sample"
+            percentile = tfp.stats.percentile(x, percentile_clip, axis=[1, 2, 3], keepdims=True)
             x_clipped = tf.minimum(x, percentile)
             return x_clipped
-    
+    else:
+        preprocessing = lambda x: x
+
     fcgr_matrix = preprocessing(fcgr_matrix)
     embedding = model.predict(fcgr_matrix)
 
